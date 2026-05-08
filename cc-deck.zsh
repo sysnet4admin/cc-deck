@@ -151,6 +151,11 @@ for mf in sorted(
             continue
         name = meta.get('name', '')
         desc = meta.get('description', '')
+
+        # Skip entries already marked as completed by Ctrl-D
+        if '(completed)' in name.lower():
+            continue
+
         combined = (name + ' ' + desc).upper()
 
         FOLLOWUP = [
