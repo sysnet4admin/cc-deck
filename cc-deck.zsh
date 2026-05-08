@@ -214,6 +214,55 @@ with open(pins_file, 'w') as f:
 PYEOF
 }
 
+# ── Delete TODO or PIN entry ───────────────────────────────────────────────────
+# TODO: deletes the Claude memory file
+# PIN:  removes from pins JSON
+# regular session: not supported
+_cc_deck_delete() {
+  local raw_id="$1"
+  python3 - "$raw_id" "$_cc_deck_pins_file" <<'PYEOF'
+import json, os, sys, glob
+
+raw_id, pins_file = sys.argv[1], sys.argv[2]
+
+if raw_id.startswith('TODO:'):
+    session_id = raw_id[5:]
+    found = []
+    for mf in glob.glob(os.path.expanduser('~/.claude/projects/*/memory/*.md')):
+        try:
+            with open(mf) as f:
+                content = f.read()
+            if f'originSessionId: {session_id}' in content or (not session_id and 'originSessionId' not in content):
+                found.append(mf)
+        except:
+            pass
+    if found:
+        for mf in found:
+            os.remove(mf)
+            print(f'[cc-deck] deleted: {os.path.basename(mf)}')
+    else:
+        print(f'[cc-deck] memory file not found')
+
+elif raw_id.startswith('PIN:'):
+    session_id = raw_id[4:]
+    try:
+        with open(pins_file) as f:
+            pins = json.load(f)
+    except:
+        pins = {}
+    if session_id in pins:
+        del pins[session_id]
+        with open(pins_file, 'w') as f:
+            json.dump(pins, f)
+        print('[cc-deck] PIN removed')
+    else:
+        print('[cc-deck] PIN not found')
+
+else:
+    print('[cc-deck] Ctrl-D deletes only TODO or PIN entries')
+PYEOF
+}
+
 # ── Mode persistence ───────────────────────────────────────────────────────────
 _cc_deck_save_mode() { echo "$1" > "$_cc_deck_mode_file" 2>/dev/null }
 _cc_deck_load_mode() { cat "$_cc_deck_mode_file" 2>/dev/null || echo "default" }
@@ -250,9 +299,10 @@ _cc_deck_resume() {
 # Keys:
 #   Enter    resume with last saved mode
 #   Ctrl-K   pin / unpin current session (toggle)
+#   Ctrl-D   delete selected TODO or PIN entry
 #   Ctrl-O   resume with: claude
 #   Ctrl-A   resume with: claude-api
-#   Ctrl-D   resume with: claude --dangerously-skip-permissions
+#   Ctrl-S   resume with: claude --dangerously-skip-permissions
 #   Ctrl-X   resume with: claude-api --dangerously-skip-permissions
 #
 # Env:
@@ -333,8 +383,8 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  ^K: pin toggle  ^O/A/D/X: mode  ESC: quit' \
-          --expect=ctrl-o,ctrl-a,ctrl-d,ctrl-x,ctrl-k)
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  ^K: pin  ^D: delete  ^O/A/S/X: mode  ESC: quit' \
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d)
 
       [[ -z "$result" ]] && return
 
@@ -358,11 +408,18 @@ cc-deck() {
         continue
       fi
 
+      # Ctrl-D: delete TODO or PIN and reopen
+      if [[ "$key" == "ctrl-d" ]]; then
+        _cc_deck_delete "$raw_id"
+        sleep 0.5
+        continue
+      fi
+
       # Mode keys
       case "$key" in
         ctrl-o) mode="default" ;;
         ctrl-a) mode="api" ;;
-        ctrl-d) mode="dangerous" ;;
+        ctrl-s) mode="dangerous" ;;
         ctrl-x) mode="api-dangerous" ;;
       esac
 
