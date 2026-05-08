@@ -390,7 +390,7 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  ^K: pin  ^D: delete  ^O/A/S/X: mode  ESC: quit' \
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  ^K: pin  ^D: delete(TODO/PIN)  ^O/A/S/X: mode  ESC: quit' \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d)
 
       [[ -z "$result" ]] && return
@@ -415,10 +415,14 @@ cc-deck() {
         continue
       fi
 
-      # Ctrl-D: delete TODO or PIN and reopen
+      # Ctrl-D: delete TODO or PIN only (silently ignore regular sessions)
       if [[ "$key" == "ctrl-d" ]]; then
-        _cc_deck_delete "$raw_id"
-        sleep 0.5
+        case "$raw_id" in
+          TODO:*|PIN:*)
+            _cc_deck_delete "$raw_id"
+            sleep 0.5
+            ;;
+        esac
         continue
       fi
 
