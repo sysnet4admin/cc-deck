@@ -150,26 +150,16 @@ for mf in sorted(
         if meta.get('type') != 'project':
             continue
         name = meta.get('name', '')
-        desc = meta.get('description', '')
 
-        # Skip entries already marked as completed by Ctrl-D
+        # Only detect explicit TODO entries
+        if 'TODO' not in name.upper():
+            continue
+
+        # Skip entries marked done by Ctrl-D
         if '(completed)' in name.lower():
             continue
 
-        combined = (name + ' ' + desc).upper()
-
-        FOLLOWUP = [
-            # Korean — explicit follow-up signals
-            '확인 필요', '테스트 필요', '검토 필요', '점검 필요',
-            '다음 주', '다음주', '향후', '재검토',
-            '모니터링', '지켜보', '재발',
-            # English
-            'TODO', 'FOLLOW UP', 'FOLLOW-UP', 'NEXT WEEK',
-            'PENDING', 'TO CHECK', 'TO VERIFY', 'TO MONITOR',
-        ]
-        if not any(kw in combined for kw in FOLLOWUP):
-            continue
-        desc = meta.get('description', '') or meta.get('name', '')
+        desc = meta.get('description', '') or name
         session_id = meta.get('originSessionId', '')
         if session_id:
             cwd = get_cwd_from_session(session_id)
