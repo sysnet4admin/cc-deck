@@ -115,6 +115,20 @@ def get_cwd_from_session(session_id):
             pass
     return ''
 
+def get_latest_session_in_proj(memory_file):
+    """originSessionId 없을 때 같은 프로젝트의 최신 세션으로 fallback."""
+    proj_dir = os.path.dirname(os.path.dirname(memory_file))
+    jsonl_files = sorted(
+        glob.glob(os.path.join(proj_dir, '*.jsonl')),
+        key=os.path.getmtime, reverse=True
+    )
+    for f in jsonl_files:
+        sid = os.path.basename(f).replace('.jsonl', '')
+        cwd = get_cwd_from_session(sid)
+        if cwd:
+            return sid, cwd
+    return '', ''
+
 # 1. Memory TODOs (type: project, name starts with TODO)
 for mf in sorted(
     glob.glob(os.path.expanduser('~/.claude/projects/*/memory/*.md')),
@@ -135,11 +149,27 @@ for mf in sorted(
                 meta[k.strip()] = v.strip()
         if meta.get('type') != 'project':
             continue
-        if 'TODO' not in meta.get('name', '').upper():
+        name = meta.get('name', '')
+        desc = meta.get('description', '')
+        combined = (name + ' ' + desc).upper()
+
+        FOLLOWUP = [
+            # Korean — explicit follow-up signals
+            '확인 필요', '테스트 필요', '검토 필요', '점검 필요',
+            '다음 주', '다음주', '향후', '재검토',
+            '모니터링', '지켜보', '재발',
+            # English
+            'TODO', 'FOLLOW UP', 'FOLLOW-UP', 'NEXT WEEK',
+            'PENDING', 'TO CHECK', 'TO VERIFY', 'TO MONITOR',
+        ]
+        if not any(kw in combined for kw in FOLLOWUP):
             continue
         desc = meta.get('description', '') or meta.get('name', '')
         session_id = meta.get('originSessionId', '')
-        cwd = get_cwd_from_session(session_id) if session_id else ''
+        if session_id:
+            cwd = get_cwd_from_session(session_id)
+        else:
+            session_id, cwd = get_latest_session_in_proj(mf)
         short_cwd = cwd.replace(HOME, '~') if cwd else '?'
         print(f'TODO:{session_id}\t{cwd}\t\033[1;33m[TODO]\033[0m {short_cwd}: {desc[:70]}')
     except:
