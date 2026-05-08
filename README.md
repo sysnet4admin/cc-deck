@@ -129,6 +129,8 @@ Claude writes a memory file with `type: project` and `name: TODO - ...`. cc-deck
 
 > Claude Code 세션 브라우저 & 태스크 관리 도구
 
+![데모](demo/demo_ko.gif)
+
 여러 프로젝트를 오가며 Claude Code를 쓰다 보면 어떤 세션에서 뭘 하고 있었는지 파악하기 어렵습니다. `claude --resume`은 세션 목록을 보여주지만 요약이 압축되어 있어 어느 작업인지 구분하기 힘듭니다.
 
 `cc-deck`은 fzf TUI로 전체 세션 히스토리를 탐색하며 각 세션의 **마지막 입력 내용**을 미리보기로 보여줍니다. Claude 메모리에 기록된 TODO는 자동으로 상단에 고정됩니다. 세션을 선택하면 원래 디렉토리로 자동 이동 후 재개합니다.
