@@ -135,7 +135,7 @@ for mf in sorted(
                 meta[k.strip()] = v.strip()
         if meta.get('type') != 'project':
             continue
-        if not meta.get('name', '').upper().startswith('TODO'):
+        if 'TODO' not in meta.get('name', '').upper():
             continue
         desc = meta.get('description', '') or meta.get('name', '')
         session_id = meta.get('originSessionId', '')
