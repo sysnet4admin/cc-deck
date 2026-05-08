@@ -232,14 +232,26 @@ if raw_id.startswith('TODO:'):
         try:
             with open(mf) as f:
                 content = f.read()
-            if f'originSessionId: {session_id}' in content or (not session_id and 'originSessionId' not in content):
+            if session_id and f'originSessionId: {session_id}' in content:
                 found.append(mf)
         except:
             pass
     if found:
+        import re
         for mf in found:
-            os.remove(mf)
-            print(f'[cc-deck] deleted: {os.path.basename(mf)}')
+            with open(mf) as f:
+                content = f.read()
+            # Remove TODO from name field, preserve rest of file
+            def remove_todo(m):
+                name = m.group(1)
+                cleaned = re.sub(r'(?i)TODO\s*[-–—:]?\s*', '', name).strip()
+                if not cleaned:
+                    cleaned = name
+                return f'name: {cleaned} (completed)'
+            new_content = re.sub(r'^name:(.+)$', remove_todo, content, flags=re.MULTILINE)
+            with open(mf, 'w') as f:
+                f.write(new_content)
+            print(f'[cc-deck] marked done: {os.path.basename(mf)}')
     else:
         print(f'[cc-deck] memory file not found')
 
