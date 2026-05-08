@@ -141,7 +141,7 @@ for mf in sorted(
         session_id = meta.get('originSessionId', '')
         cwd = get_cwd_from_session(session_id) if session_id else ''
         short_cwd = cwd.replace(HOME, '~') if cwd else '?'
-        print(f'TODO:{session_id}\t{cwd}\t[TODO] {short_cwd}: {desc[:70]}')
+        print(f'TODO:{session_id}\t{cwd}\t\033[1;33m[TODO]\033[0m {short_cwd}: {desc[:70]}')
     except:
         pass
 
@@ -154,7 +154,7 @@ try:
         note = info.get('note', '')
         short_cwd = cwd.replace(HOME, '~') if cwd else '?'
         label = note if note else short_cwd
-        print(f'PIN:{sid}\t{cwd}\t[PIN]  {short_cwd}: {label[:70]}')
+        print(f'PIN:{sid}\t{cwd}\t\033[1;35m[PIN] \033[0m {short_cwd}: {label[:70]}')
 except:
     pass
 PYEOF
@@ -199,7 +199,7 @@ _cc_deck_resume() {
   local current_dir="$(pwd)"
 
   if [[ -n "$cwd" && -d "$cwd" && "$cwd" != "$current_dir" ]]; then
-    echo "cd $cwd"
+    echo "cd ${cwd/#$HOME/~}"
     cd "$cwd"
   fi
 
@@ -250,7 +250,7 @@ cc-deck() {
     local mtime=$(stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$filepath")
     local short_cwd="${cwd/#$HOME/~}"
     local marker="  "
-    [[ "$cwd" == "$current_dir" ]] && marker="* "
+    [[ "$cwd" == "$current_dir" ]] && marker=$'\033[32m*\033[0m '
     session_entries+=("${session_id}	${cwd}	${marker}${mtime}  ${short_cwd}: ${preview:-(no preview)}")
   done < <(_cc_deck_extract_all "${files[@]}")
 
@@ -297,12 +297,13 @@ cc-deck() {
       local result
       result=$(printf '%s\n' "${all_entries[@]}" \
         | fzf \
+          --ansi \
           --delimiter=$'\t' \
           --with-nth=3 \
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header="[TODO]=auto-pinned  [PIN]=manual | Enter: ${enter_label}  ^K: pin toggle  ^O/A/D/X: mode  ESC: quit" \
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  ^K: pin toggle  ^O/A/D/X: mode  ESC: quit' \
           --expect=ctrl-o,ctrl-a,ctrl-d,ctrl-x,ctrl-k)
 
       [[ -z "$result" ]] && return
