@@ -1,5 +1,7 @@
 # cc-deck
 
+**[🇺🇸 English](#cc-deck) | [🇰🇷 한국어](#cc-deck-한국어)**
+
 > Claude Code session browser and task manager
 
 ![demo](demo/demo.gif)
@@ -122,6 +124,8 @@ Claude writes a memory file with `type: project` and `name: TODO - ...`. cc-deck
 ---
 
 # cc-deck (한국어)
+
+**[🇺🇸 English](#cc-deck) | [🇰🇷 한국어](#cc-deck-한국어)**
 
 > Claude Code 세션 브라우저 & 태스크 관리 도구
 
