@@ -189,9 +189,11 @@ PYEOF
 _cc_deck_toggle_pin() {
   local session_id="$1"
   local cwd="$2"
-  python3 - "$session_id" "$cwd" "$_cc_deck_pins_file" <<'PYEOF'
+  local preview="$3"
+  python3 - "$session_id" "$cwd" "$_cc_deck_pins_file" "$preview" <<'PYEOF'
 import json, os, sys, time
 sid, cwd, pins_file = sys.argv[1], sys.argv[2], sys.argv[3]
+preview = sys.argv[4] if len(sys.argv) > 4 else ''
 try:
     with open(pins_file) as f:
         pins = json.load(f)
@@ -201,7 +203,7 @@ if sid in pins:
     del pins[sid]
     print('[cc-deck] unpinned')
 else:
-    pins[sid] = {'cwd': cwd, 'pinned_at': int(time.time())}
+    pins[sid] = {'cwd': cwd, 'pinned_at': int(time.time()), 'note': preview}
     short = cwd.replace(os.path.expanduser('~'), '~')
     print(f'[cc-deck] pinned: {short}')
 with open(pins_file, 'w') as f:
@@ -407,10 +409,12 @@ cc-deck() {
 
       # Ctrl-K: toggle pin and reopen
       if [[ "$key" == "ctrl-k" ]]; then
+        local display=$(echo "$selected" | cut -f3)
+        local preview="${display#*: }"  # text after first ": "
         case "$raw_id" in
           TODO:*) echo "[cc-deck] TODO is managed by Claude memory" ; sleep 1 ;;
-          PIN:*)  _cc_deck_toggle_pin "${raw_id#PIN:}" "$cwd" ; sleep 0.5 ;;
-          *)      _cc_deck_toggle_pin "$raw_id" "$cwd" ; sleep 0.5 ;;
+          PIN:*)  _cc_deck_toggle_pin "${raw_id#PIN:}" "$cwd" "$preview" ; sleep 0.5 ;;
+          *)      _cc_deck_toggle_pin "$raw_id" "$cwd" "$preview" ; sleep 0.5 ;;
         esac
         continue
       fi
