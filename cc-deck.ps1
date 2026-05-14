@@ -119,9 +119,51 @@ function _cc_deck_resume {
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command
 function cc-deck {
+    param([string]$Subcommand)
+
     if (-not $global:_CC_DECK.Python) {
         Write-Host "[cc-deck] Error: python not found. Install Python 3 from https://python.org"
         return
+    }
+
+    # 'cc-deck update' — manual update trigger
+    if ($Subcommand -eq 'update') {
+        Write-Host "[cc-deck] Checking for updates..."
+        & $global:_CC_DECK.Python "$($global:_CC_DECK.Dir)\lib\auto_update.py" $global:_CC_DECK.Dir --force
+        $flag = "$HOME\.claude\.cc-deck-updated"
+        if (Test-Path $flag) {
+            $info = (Get-Content $flag -Raw -ErrorAction SilentlyContinue).Trim()
+            Remove-Item $flag -ErrorAction SilentlyContinue
+            Write-Host "[cc-deck] Updated ($info). Reload with: . `$PROFILE"
+        } else {
+            Write-Host "[cc-deck] Already up to date."
+        }
+        return
+    }
+
+    # Show pending update notification
+    $updateFlag = "$HOME\.claude\.cc-deck-updated"
+    if (Test-Path $updateFlag) {
+        $info = (Get-Content $updateFlag -Raw -ErrorAction SilentlyContinue).Trim()
+        Remove-Item $updateFlag -ErrorAction SilentlyContinue
+        Write-Host "[cc-deck] Updated ($info). Reload with: . `$PROFILE"
+    }
+
+    # Background auto-update check (24h TTL, non-blocking)
+    if (-not $env:CC_DECK_DISABLE_AUTOUPDATER -and $global:_CC_DECK.Python) {
+        $updateScript = "$($global:_CC_DECK.Dir)\lib\auto_update.py"
+        if (Test-Path $updateScript) {
+            $psi = [System.Diagnostics.ProcessStartInfo]@{
+                FileName               = $global:_CC_DECK.Python
+                Arguments              = "`"$updateScript`" `"$($global:_CC_DECK.Dir)`""
+                WindowStyle            = 'Hidden'
+                CreateNoWindow         = $true
+                UseShellExecute        = $false
+                RedirectStandardOutput = $true
+                RedirectStandardError  = $true
+            }
+            [System.Diagnostics.Process]::Start($psi) | Out-Null
+        }
     }
 
     # Save current encoding state — PowerShell 5.1 pipes with ASCII by default, breaking Korean

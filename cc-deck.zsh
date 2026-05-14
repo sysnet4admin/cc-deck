@@ -91,6 +91,34 @@ _cc_deck_resume() {
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command (e.g. "claude-api")
 cc-deck() {
+  # 'cc-deck update' — manual update trigger
+  if [[ "$1" == "update" ]]; then
+    echo "[cc-deck] Checking for updates..."
+    python3 "$_CC_DECK_DIR/lib/auto_update.py" "$_CC_DECK_DIR" --force
+    local flag="$HOME/.claude/.cc-deck-updated"
+    if [[ -f "$flag" ]]; then
+      local info=$(<"$flag")
+      rm -f "$flag"
+      echo "[cc-deck] Updated ($info). Reload with: source ~/.zshrc"
+    else
+      echo "[cc-deck] Already up to date."
+    fi
+    return
+  fi
+
+  # Show pending update notification
+  local update_flag="$HOME/.claude/.cc-deck-updated"
+  if [[ -f "$update_flag" ]]; then
+    local info=$(<"$update_flag")
+    rm -f "$update_flag"
+    echo "[cc-deck] Updated ($info). Reload with: source ~/.zshrc"
+  fi
+
+  # Background auto-update check (24h TTL, non-blocking)
+  if [[ -z "$CC_DECK_DISABLE_AUTOUPDATER" ]]; then
+    python3 "$_CC_DECK_DIR/lib/auto_update.py" "$_CC_DECK_DIR" >/dev/null 2>&1 &!
+  fi
+
   local current_dir="$(pwd)"
   local default_cmd="${CLAUDE_DECK_CMD:-claude}"
 
