@@ -8,7 +8,7 @@
 
 Claude Code sessions pile up across projects. When you need to get back to something — whether it was yesterday's debugging session, a task Claude flagged for follow-up, or a session you bookmarked — finding it and resuming in the right context takes friction.
 
-`cc-deck` removes that friction. It's a zsh function that opens a fuzzy-searchable TUI over all your Claude Code sessions, with TODO items from Claude memory pinned at the top.
+`cc-deck` removes that friction. It opens a fuzzy-searchable TUI over all your Claude Code sessions, with TODO items from Claude memory pinned at the top. Works on macOS (zsh) and Windows (PowerShell).
 
 ---
 
@@ -26,20 +26,38 @@ Claude Code sessions pile up across projects. When you need to get back to somet
 
 ## Requirements
 
-- macOS (Linux support planned)
-- zsh
-- python3
-- [fzf](https://github.com/junegunn/fzf) — `brew install fzf`
+| | macOS | Windows |
+|---|---|---|
+| Shell | zsh | PowerShell 5.1+ |
+| Python | python3 | python (3.x) |
+| fzf | `brew install fzf` | `winget install junegunn.fzf` |
+
+Linux support is planned (bash).
 
 ---
 
 ## Installation
+
+**macOS (zsh)**
 
 ```zsh
 git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
 cd ~/cc-deck
 ./install.sh
 source ~/.zshrc
+```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/sysnet4admin/cc-deck.git "$HOME\cc-deck"
+. "$HOME\cc-deck\install.ps1"
+```
+
+Then add to your PowerShell profile (`$PROFILE`):
+
+```powershell
+. "$HOME\cc-deck\cc-deck.ps1"
 ```
 
 ---
@@ -82,10 +100,14 @@ cc-deck
 
 ### Default command override
 
+**macOS:**
 ```zsh
 export CLAUDE_DECK_CMD="claude-api"
-# or
-export CLAUDE_DECK_CMD="claude --dangerously-skip-permissions"
+```
+
+**Windows:**
+```powershell
+$env:CLAUDE_DECK_CMD = "claude-api"
 ```
 
 ---

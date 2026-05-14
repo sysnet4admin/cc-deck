@@ -8,7 +8,7 @@
 
 여러 프로젝트에서 Claude Code 세션이 쌓입니다. 어제 디버깅하던 세션, Claude가 나중에 확인하라고 기록한 TODO, 북마크해둔 세션으로 돌아가려면 번거롭습니다.
 
-`cc-deck`은 그 번거로움을 없애줍니다. 전체 Claude Code 세션을 퍼지 검색으로 탐색할 수 있는 zsh 함수이며, Claude 메모리의 TODO가 자동으로 상단에 고정됩니다.
+`cc-deck`은 그 번거로움을 없애줍니다. 전체 Claude Code 세션을 퍼지 검색으로 탐색할 수 있는 TUI이며, Claude 메모리의 TODO가 자동으로 상단에 고정됩니다. macOS(zsh)와 Windows(PowerShell) 모두 지원합니다.
 
 ---
 
@@ -26,20 +26,38 @@
 
 ## 요구사항
 
-- macOS (Linux 지원 예정)
-- zsh
-- python3
-- [fzf](https://github.com/junegunn/fzf) — `brew install fzf`
+| | macOS | Windows |
+|---|---|---|
+| 쉘 | zsh | PowerShell 5.1+ |
+| Python | python3 | python (3.x) |
+| fzf | `brew install fzf` | `winget install junegunn.fzf` |
+
+Linux(bash) 지원 예정.
 
 ---
 
 ## 설치
+
+**macOS (zsh)**
 
 ```zsh
 git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
 cd ~/cc-deck
 ./install.sh
 source ~/.zshrc
+```
+
+**Windows (PowerShell)**
+
+```powershell
+git clone https://github.com/sysnet4admin/cc-deck.git "$HOME\cc-deck"
+. "$HOME\cc-deck\install.ps1"
+```
+
+또는 PowerShell 프로필(`$PROFILE`)에 직접 추가:
+
+```powershell
+. "$HOME\cc-deck\cc-deck.ps1"
 ```
 
 ---
@@ -82,10 +100,14 @@ cc-deck
 
 ### 기본 명령어 변경
 
+**macOS:**
 ```zsh
 export CLAUDE_DECK_CMD="claude-api"
-# 또는
-export CLAUDE_DECK_CMD="claude --dangerously-skip-permissions"
+```
+
+**Windows:**
+```powershell
+$env:CLAUDE_DECK_CMD = "claude-api"
 ```
 
 ---
