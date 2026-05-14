@@ -2,187 +2,26 @@
 # https://github.com/sysnet4admin/cc-deck
 #
 # Usage: source this file in ~/.zshrc
-#   source ~/11.Github/cc-deck/cc-deck.zsh
+#   source ~/cc-deck/cc-deck.zsh
 #
 # Requirements: fzf (brew install fzf), python3
 
 # ── Internal file paths ────────────────────────────────────────────────────────
+_CC_DECK_DIR="${0:A:h}"
 _cc_deck_mode_file="$HOME/.claude/.cc-deck-mode"
 _cc_deck_pins_file="$HOME/.claude/.cc-deck-pins.json"
 
 # ── Session file bulk parsing (with mtime cache) ───────────────────────────────
 # Output: filepath\tcwd\tpreview
 _cc_deck_extract_all() {
-  python3 - "$@" <<'PYEOF'
-import sys, json, os
-
-CACHE_FILE = os.path.expanduser('~/.claude/.cc-deck-cache.json')
-
-def extract(filepath):
-    size = os.path.getsize(filepath)
-    cwd = ''
-    first_preview = ''
-
-    with open(filepath, 'r', errors='ignore') as f:
-        for i, line in enumerate(f):
-            if i > 50:
-                break
-            try:
-                d = json.loads(line.strip())
-                if d.get('type') == 'user' and not cwd:
-                    cwd = d.get('cwd', '')
-                    content = d.get('message', {}).get('content', '')
-                    if isinstance(content, str) and not content.startswith('<'):
-                        first_preview = content.split('\n')[0][:80]
-            except:
-                pass
-
-    last_prompt = ''
-    with open(filepath, 'rb') as f:
-        f.seek(max(0, size - 20480))
-        tail = f.read().decode('utf-8', errors='ignore')
-    for line in reversed(tail.split('\n')):
-        try:
-            d = json.loads(line.strip())
-            if d.get('type') == 'last-prompt':
-                p = d.get('lastPrompt', '')
-                if p and not p.startswith('<'):
-                    last_prompt = p.split('\n')[0][:80]
-                    break
-        except:
-            pass
-
-    return cwd, last_prompt or first_preview
-
-def load_cache():
-    try:
-        with open(CACHE_FILE) as f:
-            return json.load(f)
-    except:
-        return {}
-
-def save_cache(cache):
-    try:
-        with open(CACHE_FILE, 'w') as f:
-            json.dump(cache, f)
-    except:
-        pass
-
-cache = load_cache()
-new_cache = {}
-
-for f in sys.argv[1:]:
-    try:
-        mtime = os.path.getmtime(f)
-        entry = cache.get(f)
-        if entry and entry.get('mtime') == mtime:
-            cwd, preview = entry['cwd'], entry['preview']
-        else:
-            cwd, preview = extract(f)
-        new_cache[f] = {'mtime': mtime, 'cwd': cwd, 'preview': preview}
-        print(f'{f}\t{cwd}\t{preview}', flush=True)
-    except:
-        print(f'{f}\t\t', flush=True)
-
-save_cache(new_cache)
-PYEOF
+  python3 "$_CC_DECK_DIR/lib/extract_all.py" "$@"
 }
 
 # ── Load pinned entries (memory TODOs + manual pins) ───────────────────────────
 # Output: TODO:<session_id>\t<cwd>\t[TODO] <short_cwd>: <desc>
 #         PIN:<session_id>\t<cwd>\t[PIN]  <short_cwd>: <desc>
 _cc_deck_load_pinned() {
-  python3 - "$_cc_deck_pins_file" <<'PYEOF'
-import json, os, glob, sys
-
-PINS_FILE = sys.argv[1]
-HOME = os.path.expanduser('~')
-
-def get_cwd_from_session(session_id):
-    for f in glob.glob(os.path.expanduser(f'~/.claude/projects/*/{session_id}.jsonl')):
-        try:
-            with open(f, 'r', errors='ignore') as fp:
-                for i, line in enumerate(fp):
-                    if i > 50:
-                        break
-                    try:
-                        d = json.loads(line.strip())
-                        if d.get('type') == 'user':
-                            return d.get('cwd', '')
-                    except:
-                        pass
-        except:
-            pass
-    return ''
-
-def get_latest_session_in_proj(memory_file):
-    """originSessionId 없을 때 같은 프로젝트의 최신 세션으로 fallback."""
-    proj_dir = os.path.dirname(os.path.dirname(memory_file))
-    jsonl_files = sorted(
-        glob.glob(os.path.join(proj_dir, '*.jsonl')),
-        key=os.path.getmtime, reverse=True
-    )
-    for f in jsonl_files:
-        sid = os.path.basename(f).replace('.jsonl', '')
-        cwd = get_cwd_from_session(sid)
-        if cwd:
-            return sid, cwd
-    return '', ''
-
-# 1. Memory TODOs (type: project, name starts with TODO)
-for mf in sorted(
-    glob.glob(os.path.expanduser('~/.claude/projects/*/memory/*.md')),
-    key=os.path.getmtime, reverse=True
-):
-    try:
-        with open(mf, 'r') as f:
-            content = f.read()
-        if not content.startswith('---'):
-            continue
-        end = content.find('---', 3)
-        if end == -1:
-            continue
-        meta = {}
-        for line in content[3:end].strip().split('\n'):
-            if ':' in line:
-                k, v = line.split(':', 1)
-                meta[k.strip()] = v.strip()
-        if meta.get('type') != 'project':
-            continue
-        name = meta.get('name', '')
-
-        # Only detect explicit TODO entries
-        if 'TODO' not in name.upper():
-            continue
-
-        # Skip entries marked done by Ctrl-D
-        if '(completed)' in name.lower():
-            continue
-
-        desc = meta.get('description', '') or name
-        session_id = meta.get('originSessionId', '')
-        if session_id:
-            cwd = get_cwd_from_session(session_id)
-        else:
-            session_id, cwd = get_latest_session_in_proj(mf)
-        short_cwd = cwd.replace(HOME, '~') if cwd else '?'
-        print(f'TODO:{session_id}\t{cwd}\t\033[1;33m[TODO]\033[0m {short_cwd}: {desc[:70]}')
-    except:
-        pass
-
-# 2. Manual pins
-try:
-    with open(PINS_FILE) as f:
-        pins = json.load(f)
-    for sid, info in sorted(pins.items(), key=lambda x: x[1].get('pinned_at', 0), reverse=True):
-        cwd = info.get('cwd', '')
-        note = info.get('note', '')
-        short_cwd = cwd.replace(HOME, '~') if cwd else '?'
-        label = note if note else short_cwd
-        print(f'PIN:{sid}\t{cwd}\t\033[1;35m[PIN] \033[0m {short_cwd}: {label[:70]}')
-except:
-    pass
-PYEOF
+  python3 "$_CC_DECK_DIR/lib/load_pinned.py" "$_cc_deck_pins_file"
 }
 
 # ── Manual pin toggle ──────────────────────────────────────────────────────────
@@ -190,86 +29,13 @@ _cc_deck_toggle_pin() {
   local session_id="$1"
   local cwd="$2"
   local preview="$3"
-  python3 - "$session_id" "$cwd" "$_cc_deck_pins_file" "$preview" <<'PYEOF'
-import json, os, sys, time
-sid, cwd, pins_file = sys.argv[1], sys.argv[2], sys.argv[3]
-preview = sys.argv[4] if len(sys.argv) > 4 else ''
-try:
-    with open(pins_file) as f:
-        pins = json.load(f)
-except:
-    pins = {}
-if sid in pins:
-    del pins[sid]
-    print('[cc-deck] unpinned')
-else:
-    pins[sid] = {'cwd': cwd, 'pinned_at': int(time.time()), 'note': preview}
-    short = cwd.replace(os.path.expanduser('~'), '~')
-    print(f'[cc-deck] pinned: {short}')
-with open(pins_file, 'w') as f:
-    json.dump(pins, f)
-PYEOF
+  python3 "$_CC_DECK_DIR/lib/toggle_pin.py" "$session_id" "$cwd" "$_cc_deck_pins_file" "$preview"
 }
 
 # ── Delete TODO or PIN entry ───────────────────────────────────────────────────
-# TODO: deletes the Claude memory file
-# PIN:  removes from pins JSON
-# regular session: not supported
 _cc_deck_delete() {
   local raw_id="$1"
-  python3 - "$raw_id" "$_cc_deck_pins_file" <<'PYEOF'
-import json, os, sys, glob
-
-raw_id, pins_file = sys.argv[1], sys.argv[2]
-
-if raw_id.startswith('TODO:'):
-    session_id = raw_id[5:]
-    found = []
-    for mf in glob.glob(os.path.expanduser('~/.claude/projects/*/memory/*.md')):
-        try:
-            with open(mf) as f:
-                content = f.read()
-            if session_id and f'originSessionId: {session_id}' in content:
-                found.append(mf)
-        except:
-            pass
-    if found:
-        import re
-        for mf in found:
-            with open(mf) as f:
-                content = f.read()
-            # Remove TODO from name field, preserve rest of file
-            def remove_todo(m):
-                name = m.group(1)
-                cleaned = re.sub(r'(?i)TODO\s*[-–—:]?\s*', '', name).strip()
-                if not cleaned:
-                    cleaned = name
-                return f'name: {cleaned} (completed)'
-            new_content = re.sub(r'^name:(.+)$', remove_todo, content, flags=re.MULTILINE)
-            with open(mf, 'w') as f:
-                f.write(new_content)
-            print(f'[cc-deck] marked done: {os.path.basename(mf)}')
-    else:
-        print(f'[cc-deck] memory file not found')
-
-elif raw_id.startswith('PIN:'):
-    session_id = raw_id[4:]
-    try:
-        with open(pins_file) as f:
-            pins = json.load(f)
-    except:
-        pins = {}
-    if session_id in pins:
-        del pins[session_id]
-        with open(pins_file, 'w') as f:
-            json.dump(pins, f)
-        print('[cc-deck] PIN removed')
-    else:
-        print('[cc-deck] PIN not found')
-
-else:
-    print('[cc-deck] Ctrl-D deletes only TODO or PIN entries')
-PYEOF
+  python3 "$_CC_DECK_DIR/lib/delete_entry.py" "$raw_id" "$_cc_deck_pins_file"
 }
 
 # ── Mode persistence ───────────────────────────────────────────────────────────
@@ -410,7 +176,7 @@ cc-deck() {
       # Ctrl-K: toggle pin and reopen
       if [[ "$key" == "ctrl-k" ]]; then
         local display=$(echo "$selected" | cut -f3)
-        local preview="${display#*: }"  # text after first ": "
+        local preview="${display#*: }"
         case "$raw_id" in
           TODO:*) echo "[cc-deck] TODO is managed by Claude memory" ; sleep 1 ;;
           PIN:*)  _cc_deck_toggle_pin "${raw_id#PIN:}" "$cwd" "$preview" ; sleep 0.5 ;;
