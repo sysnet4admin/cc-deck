@@ -190,7 +190,7 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^R: del  ^/: help  ESC: quit' \
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^R: rm  ^/: help  ESC: quit' \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/)
 
       [[ -z "$result" ]] && return
