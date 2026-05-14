@@ -273,6 +273,7 @@ function cc-deck {
                     --reverse `
                     "--prompt=cc-deck> " `
                     "--header=$header" `
+                    "--bind=ctrl-d:accept" `
                     --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d,tab,ctrl-/
 
                 if (-not $result) { return }
