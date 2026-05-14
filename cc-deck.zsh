@@ -194,8 +194,8 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^R: del  ^/: help  ESC: quit' \
-          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/)
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^D: del  ^H: help  ESC: quit' \
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d,tab,ctrl-h)
 
       [[ -z "$result" ]] && return
 
@@ -221,8 +221,8 @@ cc-deck() {
         continue
       fi
 
-      # Ctrl-R: delete TODO or PIN only (silently ignore regular sessions)
-      if [[ "$key" == "ctrl-r" ]]; then
+      # Ctrl-D: delete TODO or PIN only (silently ignore regular sessions)
+      if [[ "$key" == "ctrl-d" ]]; then
         case "$raw_id" in
           TODO:*|PIN:*)
             _cc_deck_delete "$raw_id"
@@ -264,8 +264,8 @@ cc-deck() {
         continue
       fi
 
-      # Ctrl-/: help
-      if [[ "$key" == "ctrl-/" ]]; then
+      # Ctrl-H: help
+      if [[ "$key" == "ctrl-h" ]]; then
         echo ""
         echo "  cc-deck key bindings"
         echo "  ──────────────────────────────────────────────────────"
@@ -277,8 +277,8 @@ cc-deck() {
         echo "  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions"
         echo "  ──────────────────────────────────────────────────────"
         echo "  Ctrl-K      Pin / unpin session"
-        echo "  Ctrl-R      Delete selected TODO or PIN"
-        echo "  Ctrl-/      Show this help"
+        echo "  Ctrl-D      Delete selected TODO or PIN"
+        echo "  Ctrl-H      Show this help"
         echo "  ESC         Quit"
         echo ""
         echo "  Press any key to return..."

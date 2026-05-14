@@ -263,7 +263,7 @@ function cc-deck {
                 }
                 $allEntries.AddRange($sessionEntries)
 
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: mode  ^K: pin  ^R: del  ^/: help  ESC: quit"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: mode  ^K: pin  ^D: del  ^/: help  ESC: quit"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -273,14 +273,14 @@ function cc-deck {
                     --reverse `
                     "--prompt=cc-deck> " `
                     "--header=$header" `
-                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/
+                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d,tab,ctrl-/
 
                 if (-not $result) { return }
 
                 # fzf --expect: first line=key (empty=Enter), second line=selected item.
                 # PowerShell sometimes drops the empty first line on Enter, so detect by content.
                 $resultArr = @($result)
-                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','tab','ctrl-/')
+                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-d','tab','ctrl-/')
                 if ($resultArr.Count -ge 2 -and ($resultArr[0] -in $knownKeys -or $resultArr[0] -eq '')) {
                     $key      = $resultArr[0]
                     $selected = $resultArr[1]
@@ -313,8 +313,8 @@ function cc-deck {
                     continue
                 }
 
-                # Ctrl-R: mark TODO done or remove PIN
-                if ($key -eq "ctrl-r") {
+                # Ctrl-D: mark TODO done or remove PIN
+                if ($key -eq "ctrl-d") {
                     if ($rawId -like "TODO:*" -or $rawId -like "PIN:*") {
                         _cc_deck_delete $rawId
                         Start-Sleep -Milliseconds 500
@@ -371,7 +371,7 @@ function cc-deck {
                     Write-Host "  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions"
                     Write-Host "  $(([string]::new([char]0x2500, 54)))"
                     Write-Host "  Ctrl-K      Pin / unpin session"
-                    Write-Host "  Ctrl-R      Delete selected TODO or PIN"
+                    Write-Host "  Ctrl-D      Delete selected TODO or PIN"
                     Write-Host "  Ctrl-/      Show this help"
                     Write-Host "  ESC         Quit"
                     Write-Host ""
