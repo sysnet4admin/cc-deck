@@ -62,7 +62,9 @@ function _cc_deck_load_mode {
 function _cc_deck_resume {
     param([string]$SessionId, [string]$Cwd, [string]$Mode = "default")
     # Strip any TODO:/PIN: prefix that may have leaked through
-    $SessionId = ($SessionId -replace '^(TODO:|PIN:)', '').Trim()
+    if ($SessionId.StartsWith('PIN:'))  { $SessionId = $SessionId.Substring(4) }
+    if ($SessionId.StartsWith('TODO:')) { $SessionId = $SessionId.Substring(5) }
+    $SessionId = $SessionId.Trim()
     if (-not $SessionId) { Write-Host "[cc-deck] ERROR: empty session ID"; return }
     $currentDir = (Get-Location).Path
 
