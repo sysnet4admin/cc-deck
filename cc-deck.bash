@@ -190,8 +190,8 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^R: del  ^H: help  ESC: quit' \
-          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-h)
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^R: del  ^/: help  ESC: quit' \
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/)
 
       [[ -z "$result" ]] && return
 
@@ -262,8 +262,8 @@ cc-deck() {
         continue
       fi
 
-      # Ctrl-H: help
-      if [[ "$key" == "ctrl-h" ]]; then
+      # Ctrl-/: help
+      if [[ "$key" == "ctrl-/" ]]; then
         echo ""
         echo "  cc-deck key bindings"
         echo "  ──────────────────────────────────────────────────────"
@@ -276,7 +276,7 @@ cc-deck() {
         echo "  ──────────────────────────────────────────────────────"
         echo "  Ctrl-K      Pin / unpin session"
         echo "  Ctrl-R      Delete selected TODO or PIN"
-        echo "  Ctrl-H      Show this help"
+        echo "  Ctrl-/      Show this help"
         echo "  ESC         Quit"
         echo ""
         echo "  Press any key to return..."
