@@ -263,7 +263,7 @@ function cc-deck {
                 }
                 $allEntries.AddRange($sessionEntries)
 
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  ^K: pin  ^D: delete(TODO/PIN)  ^O/A/S/X: mode  ESC: quit"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: mode  ^K: pin  ^D: del  ^H: help  ESC: quit"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -273,14 +273,14 @@ function cc-deck {
                     --reverse `
                     "--prompt=cc-deck> " `
                     "--header=$header" `
-                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d
+                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-d,tab,ctrl-h
 
                 if (-not $result) { return }
 
                 # fzf --expect: first line=key (empty=Enter), second line=selected item.
                 # PowerShell sometimes drops the empty first line on Enter, so detect by content.
                 $resultArr = @($result)
-                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-d')
+                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-d','tab','ctrl-h')
                 if ($resultArr.Count -ge 2 -and ($resultArr[0] -in $knownKeys -or $resultArr[0] -eq '')) {
                     $key      = $resultArr[0]
                     $selected = $resultArr[1]
@@ -319,6 +319,64 @@ function cc-deck {
                         _cc_deck_delete $rawId
                         Start-Sleep -Milliseconds 500
                     }
+                    continue
+                }
+
+                # Tab: mode picker
+                if ($key -eq "tab") {
+                    $mk = @{
+                        'default'       = if ($mode -eq 'default')       { "${ESC}[32m*${ESC}[0m" } else { " " }
+                        'api'           = if ($mode -eq 'api')           { "${ESC}[32m*${ESC}[0m" } else { " " }
+                        'dangerous'     = if ($mode -eq 'dangerous')     { "${ESC}[32m*${ESC}[0m" } else { " " }
+                        'api-dangerous' = if ($mode -eq 'api-dangerous') { "${ESC}[32m*${ESC}[0m" } else { " " }
+                    }
+                    $modeChoices = @(
+                        "default`t$($mk['default']) claude (default)         ^O   Normal Claude Code sessions"
+                        "api`t$($mk['api']) claude-api               ^A   Alternative API endpoint"
+                        "dangerous`t$($mk['dangerous']) skip-permissions         ^S   claude --dangerously-skip-permissions"
+                        "api-dangerous`t$($mk['api-dangerous']) api + skip               ^X   claude-api --dangerously-skip-permissions"
+                    )
+                    $picked = $modeChoices | fzf `
+                        --ansi `
+                        "--delimiter=`t" `
+                        --with-nth=2 `
+                        --height=8 `
+                        --reverse `
+                        --no-sort `
+                        "--prompt=mode> " `
+                        "--header=Select resume mode  (Enter to apply, Esc to cancel)"
+                    if ($picked) {
+                        $mode = ($picked -split "`t")[0]
+                        $enterLabel = switch ($mode) {
+                            'api'           { 'claude-api' }
+                            'dangerous'     { 'skip-permissions' }
+                            'api-dangerous' { 'api+skip' }
+                            default         { $defaultCmd }
+                        }
+                        _cc_deck_save_mode $mode
+                    }
+                    continue
+                }
+
+                # Ctrl-H: help
+                if ($key -eq "ctrl-h") {
+                    Write-Host ""
+                    Write-Host "  cc-deck key bindings"
+                    Write-Host "  $(([string]::new([char]0x2500, 54)))"
+                    Write-Host "  Enter       Resume with current mode"
+                    Write-Host "  Tab         Open mode picker (with descriptions)"
+                    Write-Host "  Ctrl-O      Resume with: claude (default)"
+                    Write-Host "  Ctrl-A      Resume with: claude-api"
+                    Write-Host "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"
+                    Write-Host "  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions"
+                    Write-Host "  $(([string]::new([char]0x2500, 54)))"
+                    Write-Host "  Ctrl-K      Pin / unpin session"
+                    Write-Host "  Ctrl-D      Delete selected TODO or PIN"
+                    Write-Host "  Ctrl-H      Show this help"
+                    Write-Host "  ESC         Quit"
+                    Write-Host ""
+                    Write-Host "  Press any key to return..."
+                    $null = [Console]::ReadKey($true)
                     continue
                 }
 
