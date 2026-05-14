@@ -52,9 +52,17 @@ _cc_deck_resume() {
   local mode="${3:-default}"
   local current_dir="$(pwd)"
 
-  if [[ -n "$cwd" && -d "$cwd" && "$cwd" != "$current_dir" ]]; then
-    echo "cd ${cwd/#$HOME/~}"
-    cd "$cwd"
+  if [[ -n "$cwd" && "$cwd" != "$current_dir" ]]; then
+    if [[ -d "$cwd" ]]; then
+      echo "cd ${cwd/#$HOME/~}"
+      cd "$cwd"
+    else
+      echo "[cc-deck] WARNING: '$cwd' is not accessible."
+      echo "[cc-deck] claude --resume requires the original directory to be reachable."
+      echo "[cc-deck] Mount the drive or navigate there manually, then run:"
+      echo "          claude --resume $session_id"
+      return
+    fi
   fi
 
   _cc_deck_save_mode "$mode"

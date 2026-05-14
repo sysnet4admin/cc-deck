@@ -63,12 +63,20 @@ function _cc_deck_resume {
     param([string]$SessionId, [string]$Cwd, [string]$Mode = "default")
     $currentDir = (Get-Location).Path
 
-    if ($Cwd -and (Test-Path $Cwd -PathType Container) -and ($Cwd -ne $currentDir)) {
-        $shortCwd = if ($Cwd.StartsWith($HOME, [System.StringComparison]::OrdinalIgnoreCase)) {
-            '~' + $Cwd.Substring($HOME.Length)
-        } else { $Cwd }
-        Write-Host "cd $shortCwd"
-        Set-Location $Cwd
+    if ($Cwd -and ($Cwd -ne $currentDir)) {
+        if (Test-Path $Cwd -PathType Container) {
+            $shortCwd = if ($Cwd.StartsWith($HOME, [System.StringComparison]::OrdinalIgnoreCase)) {
+                '~' + $Cwd.Substring($HOME.Length)
+            } else { $Cwd }
+            Write-Host "cd $shortCwd"
+            Set-Location $Cwd
+        } else {
+            Write-Host "[cc-deck] WARNING: '$Cwd' is not accessible."
+            Write-Host "[cc-deck] claude --resume requires the original directory to be reachable."
+            Write-Host "[cc-deck] Mount the drive or navigate there manually, then run:"
+            Write-Host "          claude --resume $SessionId"
+            return
+        }
     }
 
     _cc_deck_save_mode $Mode
