@@ -26,13 +26,11 @@ Claude Code sessions pile up across projects. When you need to get back to somet
 
 ## Requirements
 
-| | macOS | Windows |
-|---|---|---|
-| Shell | zsh | PowerShell 5.1+ |
-| Python | python3 | python (3.x) |
-| fzf | `brew install fzf` | `winget install junegunn.fzf` |
-
-Linux support is planned (bash).
+| | macOS | Windows | Linux |
+|---|---|---|---|
+| Shell | zsh | PowerShell 5.1+ | bash |
+| Python | python3 | python (3.x) | python3 |
+| fzf | `brew install fzf` | `winget install junegunn.fzf` | `apt/dnf install fzf` |
 
 ---
 
@@ -45,6 +43,14 @@ git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
 cd ~/cc-deck
 ./install.sh
 source ~/.zshrc
+```
+
+**Linux (bash)**
+
+```bash
+git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
+echo 'source ~/cc-deck/cc-deck.bash' >> ~/.bashrc
+source ~/.bashrc
 ```
 
 **Windows (PowerShell)**
@@ -74,7 +80,7 @@ cc-deck
 |-----|--------|
 | `Enter` | Resume with last saved mode |
 | `Ctrl-K` | Pin / unpin current session |
-| `Ctrl-D` | Mark TODO as done / remove PIN |
+| `Ctrl-R` | Mark TODO as done / remove PIN |
 | `Ctrl-O` | Resume with `claude` |
 | `Ctrl-A` | Resume with `claude-api` |
 | `Ctrl-S` | Resume with `claude --dangerously-skip-permissions` |
@@ -157,13 +163,13 @@ In the TUI, navigate to any session and press `Ctrl-K`. It pins the session with
 
 ### 4. Marking a TODO as done
 
-When a TODO is resolved, press `Ctrl-D` on it. cc-deck removes `TODO` from the memory entry name and appends `(completed)` — the memory file itself is preserved so Claude still has the context.
+When a TODO is resolved, press `Ctrl-R` on it. cc-deck removes `TODO` from the memory entry name and appends `(completed)` — the memory file itself is preserved so Claude still has the context.
 
 ```
 # Before
 name: TODO - Monitor EKS cluster after 3Gi applied
 
-# After Ctrl-D
+# After Ctrl-R
 name: Monitor EKS cluster after 3Gi applied (completed)
 ```
 

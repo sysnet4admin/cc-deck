@@ -26,13 +26,11 @@
 
 ## 요구사항
 
-| | macOS | Windows |
-|---|---|---|
-| 쉘 | zsh | PowerShell 5.1+ |
-| Python | python3 | python (3.x) |
-| fzf | `brew install fzf` | `winget install junegunn.fzf` |
-
-Linux(bash) 지원 예정.
+| | macOS | Windows | Linux |
+|---|---|---|---|
+| 쉘 | zsh | PowerShell 5.1+ | bash |
+| Python | python3 | python (3.x) | python3 |
+| fzf | `brew install fzf` | `winget install junegunn.fzf` | `apt/dnf install fzf` |
 
 ---
 
@@ -45,6 +43,14 @@ git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
 cd ~/cc-deck
 ./install.sh
 source ~/.zshrc
+```
+
+**Linux (bash)**
+
+```bash
+git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
+echo 'source ~/cc-deck/cc-deck.bash' >> ~/.bashrc
+source ~/.bashrc
 ```
 
 **Windows (PowerShell)**
@@ -74,7 +80,7 @@ cc-deck
 |----|------|
 | `Enter` | 마지막 저장된 모드로 재개 |
 | `Ctrl-K` | 현재 세션 고정 / 해제 |
-| `Ctrl-D` | TODO 완료 처리 / PIN 제거 |
+| `Ctrl-R` | TODO 완료 처리 / PIN 제거 |
 | `Ctrl-O` | `claude`로 재개 |
 | `Ctrl-A` | `claude-api`로 재개 |
 | `Ctrl-S` | `claude --dangerously-skip-permissions`로 재개 |
@@ -157,13 +163,13 @@ TUI에서 원하는 세션으로 이동 후 `Ctrl-K`를 누릅니다. 마지막 
 
 ### 4. TODO 완료 처리
 
-TODO가 해결되면 `Ctrl-D`를 누릅니다. cc-deck은 메모리 파일의 이름에서 `TODO`를 제거하고 `(completed)`를 추가합니다. 메모리 파일 자체는 보존되므로 Claude의 컨텍스트는 유지됩니다.
+TODO가 해결되면 `Ctrl-R`를 누릅니다. cc-deck은 메모리 파일의 이름에서 `TODO`를 제거하고 `(completed)`를 추가합니다. 메모리 파일 자체는 보존되므로 Claude의 컨텍스트는 유지됩니다.
 
 ```
 # 처리 전
 name: TODO - EKS 클러스터 3Gi 메모리 제한 적용 후 모니터링
 
-# Ctrl-D 후
+# Ctrl-R 후
 name: EKS 클러스터 3Gi 메모리 제한 적용 후 모니터링 (completed)
 ```
 

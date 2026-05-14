@@ -1,61 +1,51 @@
 # cc-deck: Claude Code session browser and task manager
 # https://github.com/sysnet4admin/cc-deck
 #
-# Usage: source this file in ~/.zshrc
-#   source ~/cc-deck/cc-deck.zsh
+# Usage: source this file in ~/.bashrc
+#   source ~/cc-deck/cc-deck.bash
 #
-# Requirements: fzf (brew install fzf), python3
+# Requirements: fzf (apt/dnf install fzf), python3
 
 # ── Internal file paths ────────────────────────────────────────────────────────
-_CC_DECK_DIR="${0:A:h}"
+_CC_DECK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _cc_deck_mode_file="$HOME/.claude/.cc-deck-mode"
 _cc_deck_pins_file="$HOME/.claude/.cc-deck-pins.json"
 
 # ── Session file bulk parsing (with mtime cache) ───────────────────────────────
-# Output: filepath\tcwd\tpreview
 _cc_deck_extract_all() {
   python3 "$_CC_DECK_DIR/lib/extract_all.py" "$@"
 }
 
-# ── Load pinned entries (memory TODOs + manual pins) ───────────────────────────
-# Output: TODO:<session_id>\t<cwd>\t[TODO] <short_cwd>: <desc>
-#         PIN:<session_id>\t<cwd>\t[PIN]  <short_cwd>: <desc>
+# ── Load pinned entries ────────────────────────────────────────────────────────
 _cc_deck_load_pinned() {
   python3 "$_CC_DECK_DIR/lib/load_pinned.py" "$_cc_deck_pins_file"
 }
 
 # ── Manual pin toggle ──────────────────────────────────────────────────────────
 _cc_deck_toggle_pin() {
-  local session_id="$1"
-  local cwd="$2"
-  local preview="$3"
+  local session_id="$1" cwd="$2" preview="$3"
   python3 "$_CC_DECK_DIR/lib/toggle_pin.py" "$session_id" "$cwd" "$_cc_deck_pins_file" "$preview"
 }
 
 # ── Delete TODO or PIN entry ───────────────────────────────────────────────────
 _cc_deck_delete() {
-  local raw_id="$1"
-  python3 "$_CC_DECK_DIR/lib/delete_entry.py" "$raw_id" "$_cc_deck_pins_file"
+  python3 "$_CC_DECK_DIR/lib/delete_entry.py" "$1" "$_cc_deck_pins_file"
 }
 
 # ── Mode persistence ───────────────────────────────────────────────────────────
-_cc_deck_save_mode() { echo "$1" > "$_cc_deck_mode_file" 2>/dev/null }
-_cc_deck_load_mode() { cat "$_cc_deck_mode_file" 2>/dev/null || echo "default" }
+_cc_deck_save_mode() { echo "$1" > "$_cc_deck_mode_file" 2>/dev/null; }
+_cc_deck_load_mode() { cat "$_cc_deck_mode_file" 2>/dev/null || echo "default"; }
 
 # ── Session resume ─────────────────────────────────────────────────────────────
-# CLAUDE_DECK_CMD env var overrides default command
-# e.g. export CLAUDE_DECK_CMD="claude-api"
-#      export CLAUDE_DECK_CMD="claude --dangerously-skip-permissions"
 _cc_deck_resume() {
-  local session_id="$1"
-  local cwd="$2"
-  local mode="${3:-default}"
-  local current_dir="$(pwd)"
+  local session_id="$1" cwd="$2" mode="${3:-default}"
+  local current_dir
+  current_dir="$(pwd)"
 
   if [[ -n "$cwd" && "$cwd" != "$current_dir" ]]; then
     if [[ -d "$cwd" ]]; then
       echo "cd ${cwd/#$HOME/~}"
-      cd "$cwd"
+      cd "$cwd" || return
     else
       echo "[cc-deck] WARNING: '$cwd' is not accessible."
       echo "[cc-deck] claude --resume requires the original directory to be reachable."
@@ -71,7 +61,7 @@ _cc_deck_resume() {
     api)           claude-api --resume "$session_id" ;;
     dangerous)     claude --dangerously-skip-permissions --resume "$session_id" ;;
     api-dangerous) claude-api --dangerously-skip-permissions --resume "$session_id" ;;
-    *)             ${=CLAUDE_DECK_CMD:-claude} --resume "$session_id" ;;
+    *)             ${CLAUDE_DECK_CMD:-claude} --resume "$session_id" ;;
   esac
 }
 
@@ -89,7 +79,7 @@ _cc_deck_resume() {
 #   Ctrl-X   resume with: claude-api --dangerously-skip-permissions
 #
 # Env:
-#   CLAUDE_DECK_CMD   override default resume command (e.g. "claude-api")
+#   CLAUDE_DECK_CMD   override default resume command
 cc-deck() {
   # 'cc-deck update' — manual update trigger
   if [[ "$1" == "update" ]]; then
@@ -97,9 +87,10 @@ cc-deck() {
     python3 "$_CC_DECK_DIR/lib/auto_update.py" "$_CC_DECK_DIR" --force
     local flag="$HOME/.claude/.cc-deck-updated"
     if [[ -f "$flag" ]]; then
-      local info=$(<"$flag")
+      local info
+      info=$(<"$flag")
       rm -f "$flag"
-      echo "[cc-deck] Updated ($info). Reload with: source ~/.zshrc"
+      echo "[cc-deck] Updated ($info). Reload with: source ~/.bashrc"
     else
       echo "[cc-deck] Already up to date."
     fi
@@ -109,36 +100,42 @@ cc-deck() {
   # Show pending update notification
   local update_flag="$HOME/.claude/.cc-deck-updated"
   if [[ -f "$update_flag" ]]; then
-    local info=$(<"$update_flag")
+    local info
+    info=$(<"$update_flag")
     rm -f "$update_flag"
-    echo "[cc-deck] Updated ($info). Reload with: source ~/.zshrc"
+    echo "[cc-deck] Updated ($info). Reload with: source ~/.bashrc"
   fi
 
   # Background auto-update check (24h TTL, non-blocking)
   if [[ -z "$CC_DECK_DISABLE_AUTOUPDATER" ]]; then
-    python3 "$_CC_DECK_DIR/lib/auto_update.py" "$_CC_DECK_DIR" >/dev/null 2>&1 &!
+    python3 "$_CC_DECK_DIR/lib/auto_update.py" "$_CC_DECK_DIR" >/dev/null 2>&1 &
+    disown $!
   fi
 
-  local current_dir="$(pwd)"
+  local current_dir
+  current_dir="$(pwd)"
   local default_cmd="${CLAUDE_DECK_CMD:-claude}"
 
-  # Collect recent 100 session files
+  # Collect recent 100 session files sorted by mtime
   local files=()
   while IFS= read -r f; do
     [[ -f "$f" ]] && files+=("$f")
-  done < <(find "$HOME/.claude/projects" -maxdepth 2 -name "*.jsonl" ! -path "*/subagents/*" \
-    -exec stat -f '%m %N' {} + 2>/dev/null | sort -rn | awk '{print $2}' | head -100)
+  done < <(find "$HOME/.claude/projects" -maxdepth 2 -name "*.jsonl" \
+    ! -path "*/subagents/*" -printf '%T@ %p\n' 2>/dev/null \
+    | sort -rn | awk '{print $2}' | head -100)
 
   if [[ ${#files[@]} -eq 0 ]]; then
     echo "[cc-deck] no sessions found"
     return
   fi
 
-  # Build session entries (parsed once)
+  # Build session entries: session_id<TAB>cwd<TAB>display_line
   local session_entries=()
   while IFS=$'\t' read -r filepath cwd preview; do
-    local session_id=$(basename "$filepath" .jsonl)
-    local mtime=$(stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$filepath")
+    local session_id
+    session_id="$(basename "$filepath" .jsonl)"
+    local mtime
+    mtime="$(stat -c '%y' "$filepath" 2>/dev/null | cut -c1-16)"
     local short_cwd="${cwd/#$HOME/~}"
     local marker="  "
     [[ "$cwd" == "$current_dir" ]] && marker=$'\033[32m*\033[0m '
@@ -155,7 +152,7 @@ cc-deck() {
   if [[ -n "$CLAUDE_DECK_CMD" ]]; then
     saved_mode="default"
   else
-    saved_mode=$(_cc_deck_load_mode)
+    saved_mode="$(_cc_deck_load_mode)"
   fi
   local mode="$saved_mode"
 
@@ -170,9 +167,8 @@ cc-deck() {
   local session_id cwd
 
   if command -v fzf &>/dev/null; then
-    # Ctrl-K reopens fzf after toggling pin
     while true; do
-      # Rebuild pinned entries each loop (reflects pin state changes)
+      # Rebuild pinned entries each loop
       local pinned_entries=()
       while IFS=$'\t' read -r raw_id cwd_p display; do
         pinned_entries+=("${raw_id}	${cwd_p}	${display}")
@@ -200,19 +196,21 @@ cc-deck() {
       [[ -z "$result" ]] && return
 
       local key selected
-      key=$(echo "$result" | head -1)
-      selected=$(echo "$result" | tail -1)
+      key="$(echo "$result" | head -1)"
+      selected="$(echo "$result" | tail -1)"
       [[ -z "$selected" ]] && return
 
-      local raw_id=$(echo "$selected" | cut -f1)
-      cwd=$(echo "$selected" | cut -f2)
+      local raw_id
+      raw_id="$(echo "$selected" | cut -f1)"
+      cwd="$(echo "$selected" | cut -f2)"
 
       [[ "$raw_id" == "SEP:" ]] && continue
 
       # Ctrl-K: toggle pin and reopen
       if [[ "$key" == "ctrl-k" ]]; then
-        local display=$(echo "$selected" | cut -f3)
-        local preview="${display#*: }"
+        local display preview
+        display="$(echo "$selected" | cut -f3)"
+        preview="${display#*: }"
         case "$raw_id" in
           TODO:*) echo "[cc-deck] TODO is managed by Claude memory" ; sleep 1 ;;
           PIN:*)  _cc_deck_toggle_pin "${raw_id#PIN:}" "$cwd" "$preview" ; sleep 0.5 ;;
@@ -221,7 +219,7 @@ cc-deck() {
         continue
       fi
 
-      # Ctrl-R: delete TODO or PIN only (silently ignore regular sessions)
+      # Ctrl-R: delete TODO or PIN only
       if [[ "$key" == "ctrl-r" ]]; then
         case "$raw_id" in
           TODO:*|PIN:*)
@@ -252,7 +250,7 @@ cc-deck() {
                 --prompt="mode> " \
                 --header="Select resume mode  (Enter to apply, Esc to cancel)")
         if [[ -n "$picked" ]]; then
-          mode=$(echo "$picked" | cut -f1)
+          mode="$(echo "$picked" | cut -f1)"
           case "$mode" in
             api)           enter_label="claude-api" ;;
             dangerous)     enter_label="skip-permissions" ;;
@@ -282,11 +280,11 @@ cc-deck() {
         echo "  ESC         Quit"
         echo ""
         echo "  Press any key to return..."
-        read -k 1 -s
+        read -rsn1
         continue
       fi
 
-      # Mode keys
+      # Mode switch keys
       case "$key" in
         ctrl-o) mode="default" ;;
         ctrl-a) mode="api" ;;
@@ -305,7 +303,7 @@ cc-deck() {
 
   else
     # Fallback: numbered list (fzf not installed)
-    echo "[cc-deck] install fzf for TUI: brew install fzf"
+    echo "[cc-deck] install fzf for TUI: sudo apt install fzf"
     echo "[cc-deck] sessions:"
     local i=1
     local all_entries=()
@@ -315,16 +313,15 @@ cc-deck() {
       ((i++))
     done
     echo ""
-    printf "select number (q to quit): "
-    read -r pick
+    read -rp "select number (q to quit): " pick
     [[ -z "$pick" || "$pick" == "q" ]] && return
     if ! [[ "$pick" =~ ^[0-9]+$ ]] || (( pick < 1 || pick > ${#all_entries[@]} )); then
       echo "invalid number"
       return 1
     fi
     local target="${all_entries[$((pick - 1))]}"
-    local raw_id=$(echo "$target" | cut -f1)
-    cwd=$(echo "$target" | cut -f2)
+    raw_id="$(echo "$target" | cut -f1)"
+    cwd="$(echo "$target" | cut -f2)"
     [[ "$raw_id" == "SEP:" ]] && return
     case "$raw_id" in
       TODO:*) session_id="${raw_id#TODO:}" ;;
