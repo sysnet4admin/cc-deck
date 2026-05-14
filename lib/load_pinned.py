@@ -104,6 +104,19 @@ for mf in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         pass
 
 # 2. Manual pins
+CACHE_FILE = os.path.join(HOME, '.claude', '.cc-deck-cache.json')
+
+def load_preview_from_cache(sid):
+    try:
+        with open(CACHE_FILE, encoding='utf-8') as f:
+            cache = json.load(f)
+        for filepath, entry in cache.items():
+            if os.path.splitext(os.path.basename(filepath))[0] == sid:
+                return entry.get('preview', '')
+    except Exception:
+        pass
+    return ''
+
 try:
     with open(PINS_FILE, encoding='utf-8') as f:
         pins = json.load(f)
@@ -111,7 +124,7 @@ try:
         cwd = info.get('cwd', '')
         note = info.get('note', '')
         short_cwd = replace_home(cwd)
-        label = note if note else short_cwd
-        print(f'PIN:{sid}\t{cwd}\t\033[1;35m[PIN] \033[0m {short_cwd}: {label[:70]}')
+        preview = load_preview_from_cache(sid) or note or short_cwd
+        print(f'PIN:{sid}\t{cwd}\t\033[1;35m[PIN] \033[0m {short_cwd}: {preview[:70]}')
 except Exception:
     pass
