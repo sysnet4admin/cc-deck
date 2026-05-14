@@ -65,6 +65,12 @@ function _cc_deck_resume {
     if ($SessionId.StartsWith('PIN:'))  { $SessionId = $SessionId.Substring(4) }
     if ($SessionId.StartsWith('TODO:')) { $SessionId = $SessionId.Substring(5) }
     $SessionId = $SessionId.Trim()
+    # Final guard: if not a bare UUID (e.g. drive-letter prefix leaked in), extract UUID
+    $uuidPattern = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    if ($SessionId -notmatch "^${uuidPattern}$") {
+        $m = [regex]::Match($SessionId, $uuidPattern)
+        if ($m.Success) { $SessionId = $m.Value }
+    }
     if (-not $SessionId) { Write-Host "[cc-deck] ERROR: empty session ID"; return }
     $currentDir = (Get-Location).Path
 
@@ -283,6 +289,11 @@ function cc-deck {
                 }
 
                 $sessionId = $rawId -replace '^(TODO:|PIN:)', ''
+                # If result still isn't a bare UUID, extract UUID portion
+                if ($sessionId -notmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
+                    $m2 = [regex]::Match($sessionId, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+                    if ($m2.Success) { $sessionId = $m2.Value }
+                }
                 break
             }
 
