@@ -61,6 +61,9 @@ function _cc_deck_load_mode {
 
 function _cc_deck_resume {
     param([string]$SessionId, [string]$Cwd, [string]$Mode = "default")
+    # Strip any TODO:/PIN: prefix that may have leaked through
+    $SessionId = ($SessionId -replace '^(TODO:|PIN:)', '').Trim()
+    if (-not $SessionId) { Write-Host "[cc-deck] ERROR: empty session ID"; return }
     $currentDir = (Get-Location).Path
 
     if ($Cwd -and ($Cwd -ne $currentDir)) {
@@ -224,10 +227,17 @@ function cc-deck {
 
                 if (-not $result) { return }
 
-                # fzf --expect: result[0]=key (empty=Enter), result[1]=selected line
+                # fzf --expect: first line=key (empty=Enter), second line=selected item.
+                # PowerShell sometimes drops the empty first line on Enter, so detect by content.
                 $resultArr = @($result)
-                $key      = $resultArr[0]
-                $selected = if ($resultArr.Count -gt 1) { $resultArr[1] } else { $resultArr[0] }
+                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-d')
+                if ($resultArr.Count -ge 2 -and ($resultArr[0] -in $knownKeys -or $resultArr[0] -eq '')) {
+                    $key      = $resultArr[0]
+                    $selected = $resultArr[1]
+                } else {
+                    $key      = ''
+                    $selected = $resultArr[0]
+                }
                 if (-not $selected) { return }
 
                 $parts = $selected -split "`t", 3
