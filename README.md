@@ -19,7 +19,9 @@ Claude Code sessions pile up across projects. When you need to get back to somet
 - **Manual PIN** — `Ctrl-K` to pin / unpin any session
 - **Smart resume** — automatically `cd`s to the original directory before resuming
 - **4 resume modes** — `claude`, `claude-api`, `--dangerously-skip-permissions`, and combinations
+- **Tab mode picker** — browse and select resume mode with descriptions
 - **Mode persistence** — last selected mode remembered across runs
+- **Auto-update** — daily background update check; `cc-deck update` to update manually
 - **Fast** — mtime-based cache, ~0.04s on repeat runs
 
 ---
@@ -73,6 +75,12 @@ Then add to your PowerShell profile (`$PROFILE`):
 
 ```
 cc-deck
+```
+
+To manually trigger an update:
+
+```
+cc-deck update
 ```
 
 ### Key bindings
@@ -185,6 +193,9 @@ name: Monitor EKS cluster after 3Gi applied (completed)
 | `~/.claude/.cc-deck-cache.json` | mtime-based session cache |
 | `~/.claude/.cc-deck-pins.json` | manually pinned sessions |
 | `~/.claude/.cc-deck-mode` | last selected resume mode |
+| `~/.claude/.cc-deck-last-update` | timestamp of last auto-update check |
+| `~/.claude/.cc-deck-updated` | sentinel file for pending update notification |
+| `~/.claude/.cc-deck-update.lock` | lock file to prevent concurrent updates |
 
 ---
 

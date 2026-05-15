@@ -19,7 +19,9 @@
 - **수동 고정(PIN)** — `Ctrl-K`로 원하는 세션을 핀/언핀
 - **스마트 재개** — 원래 디렉토리로 자동 이동 후 resume
 - **4가지 실행 모드** — `claude`, `claude-api`, `--dangerously-skip-permissions` 및 조합
+- **Tab 모드 선택** — 설명과 함께 실행 모드를 탐색하고 선택
 - **모드 기억** — 마지막 선택한 모드가 유지
+- **자동 업데이트** — 매일 백그라운드에서 업데이트 확인; `cc-deck update`로 수동 업데이트
 - **빠른 속도** — mtime 기반 캐시, 재실행 시 ~0.04초
 
 ---
@@ -73,6 +75,12 @@ git clone https://github.com/sysnet4admin/cc-deck.git "$HOME\cc-deck"
 
 ```
 cc-deck
+```
+
+수동 업데이트:
+
+```
+cc-deck update
 ```
 
 ### 키 바인딩
@@ -185,6 +193,9 @@ name: EKS 클러스터 3Gi 메모리 제한 적용 후 모니터링 (completed)
 | `~/.claude/.cc-deck-cache.json` | mtime 기반 세션 캐시 |
 | `~/.claude/.cc-deck-pins.json` | 수동 고정 세션 목록 |
 | `~/.claude/.cc-deck-mode` | 마지막 선택한 실행 모드 |
+| `~/.claude/.cc-deck-last-update` | 마지막 자동 업데이트 확인 시각 |
+| `~/.claude/.cc-deck-updated` | 업데이트 알림 전달용 센티넬 파일 |
+| `~/.claude/.cc-deck-update.lock` | 동시 업데이트 방지 잠금 파일 |
 
 ---
 
