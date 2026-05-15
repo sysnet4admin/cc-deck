@@ -19,6 +19,17 @@ def run(args, timeout=10):
     return subprocess.run(args, capture_output=True, text=True, timeout=timeout)
 
 
+def get_version(sha, install_dir):
+    """Return tag name for the given commit, or short SHA as fallback."""
+    try:
+        r = run(['git', '-C', install_dir, 'describe', '--tags', '--exact-match', sha])
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return sha[:7]
+
+
 def is_clean():
     try:
         r = run(['git', '-C', INSTALL_DIR, 'status', '--porcelain'])
@@ -94,7 +105,7 @@ def main():
         # Signal success
         try:
             with open(UPDATE_FLAG, 'w') as f:
-                f.write(f'{prev_sha[:7]}..{remote[:7]}')
+                f.write(f'{get_version(prev_sha, INSTALL_DIR)} → {get_version(remote, INSTALL_DIR)}')
         except Exception:
             pass
 

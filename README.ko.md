@@ -8,7 +8,7 @@
 
 여러 프로젝트에서 Claude Code 세션이 쌓입니다. 어제 디버깅하던 세션, Claude가 나중에 확인하라고 기록한 TODO, 북마크해둔 세션으로 돌아가려면 번거롭습니다.
 
-`cc-deck`은 그 번거로움을 없애줍니다. 전체 Claude Code 세션을 퍼지 검색으로 탐색할 수 있는 TUI이며, Claude 메모리의 TODO가 자동으로 상단에 고정됩니다. macOS(zsh)와 Windows(PowerShell) 모두 지원합니다.
+`cc-deck`은 그 번거로움을 없애줍니다. 전체 Claude Code 세션을 퍼지 검색으로 탐색할 수 있는 TUI이며, Claude 메모리의 TODO가 자동으로 상단에 고정됩니다. macOS(zsh), Linux(bash), Windows(PowerShell) 모두 지원합니다.
 
 ---
 
@@ -49,7 +49,8 @@ source ~/.zshrc
 
 ```bash
 git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
-echo 'source ~/cc-deck/cc-deck.bash' >> ~/.bashrc
+cd ~/cc-deck
+./install.sh --bash
 source ~/.bashrc
 ```
 
@@ -106,8 +107,8 @@ cc-deck
 
 ### 기본 명령어 변경
 
-**macOS:**
-```zsh
+**macOS / Linux:**
+```bash
 export CLAUDE_DECK_CMD="claude-api"
 ```
 

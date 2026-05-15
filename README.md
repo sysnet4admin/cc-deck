@@ -8,7 +8,7 @@
 
 Claude Code sessions pile up across projects. When you need to get back to something — whether it was yesterday's debugging session, a task Claude flagged for follow-up, or a session you bookmarked — finding it and resuming in the right context takes friction.
 
-`cc-deck` removes that friction. It opens a fuzzy-searchable TUI over all your Claude Code sessions, with TODO items from Claude memory pinned at the top. Works on macOS (zsh) and Windows (PowerShell).
+`cc-deck` removes that friction. It opens a fuzzy-searchable TUI over all your Claude Code sessions, with TODO items from Claude memory pinned at the top. Works on macOS (zsh), Linux (bash), and Windows (PowerShell).
 
 ---
 
@@ -49,7 +49,8 @@ source ~/.zshrc
 
 ```bash
 git clone https://github.com/sysnet4admin/cc-deck.git ~/cc-deck
-echo 'source ~/cc-deck/cc-deck.bash' >> ~/.bashrc
+cd ~/cc-deck
+./install.sh --bash
 source ~/.bashrc
 ```
 
@@ -106,8 +107,8 @@ cc-deck
 
 ### Default command override
 
-**macOS:**
-```zsh
+**macOS / Linux:**
+```bash
 export CLAUDE_DECK_CMD="claude-api"
 ```
 
