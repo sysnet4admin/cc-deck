@@ -37,10 +37,19 @@ color     = COLORS[current]
 ESC       = '\033'
 colored_mode = f'{color}[{label}]{ESC}[0m'
 
-# Terminal width: prefer shell-provided value (_CC_DECK_COLS set before fzf launch),
-# then try fd-based detection, then fall back to 100
-cols = int(os.environ.get('_CC_DECK_COLS', '0') or '0')
-if not cols:
+# Terminal width — priority determines how much right-margin safety we add:
+#   FZF_COLUMNS (fzf 0.55+): exact fzf window width  → 1-char margin
+#   _CC_DECK_COLS (shell):   [Console]::WindowWidth   → 4-char margin (Windows offset)
+#   fd-based / fallback:     may be inaccurate         → 8-char margin
+fzf_cols   = int(os.environ.get('FZF_COLUMNS', '') or 0)
+shell_cols  = int(os.environ.get('_CC_DECK_COLS', '') or 0)
+
+if fzf_cols:
+    cols, margin = fzf_cols, 1
+elif shell_cols:
+    cols, margin = shell_cols, 4
+else:
+    cols = 0
     for fd in (2, 1, 0):
         try:
             cols = os.get_terminal_size(fd).columns
@@ -48,10 +57,11 @@ if not cols:
                 break
         except Exception:
             continue
-if not cols:
-    cols = 100
+    if not cols:
+        cols = 100
+    margin = 8
 
 info_left = f'  {fzf_info}' if fzf_info else '  '
 mode_tag  = f'[{label}]'
-pad = max(1, cols - len(info_left) - len(mode_tag) - 2)
+pad = max(0, cols - len(info_left) - len(mode_tag) - margin)
 sys.stdout.write(f'{info_left}{" " * pad}{colored_mode}\n')
