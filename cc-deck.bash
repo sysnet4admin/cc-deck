@@ -11,6 +11,21 @@ _CC_DECK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _cc_deck_mode_file="$HOME/.claude/.cc-deck-mode"
 _cc_deck_pins_file="$HOME/.claude/.cc-deck-pins.json"
 
+# ── OS-specific helpers (BSD = macOS, GNU = Linux) ────────────────────────────
+if [[ "$(uname)" == "Darwin" ]]; then
+  _cc_deck_find_sessions() { # <dir>
+    find "$1" -maxdepth 2 -name "*.jsonl" ! -path "*/subagents/*" \
+      -exec stat -f '%m %N' {} + 2>/dev/null | sort -rn | awk '{print $2}' | head -100
+  }
+  _cc_deck_stat_mtime() { stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$1" 2>/dev/null; }
+else
+  _cc_deck_find_sessions() { # <dir>
+    find "$1" -maxdepth 2 -name "*.jsonl" ! -path "*/subagents/*" \
+      -printf '%T@ %p\n' 2>/dev/null | sort -rn | awk '{print $2}' | head -100
+  }
+  _cc_deck_stat_mtime() { stat -c '%y' "$1" 2>/dev/null | cut -c1-16; }
+fi
+
 # ── Session file bulk parsing (with mtime cache) ───────────────────────────────
 _cc_deck_extract_all() {
   python3 "$_CC_DECK_DIR/lib/extract_all.py" "$@"
@@ -120,9 +135,7 @@ cc-deck() {
   local files=()
   while IFS= read -r f; do
     [[ -f "$f" ]] && files+=("$f")
-  done < <(find "$HOME/.claude/projects" -maxdepth 2 -name "*.jsonl" \
-    ! -path "*/subagents/*" -printf '%T@ %p\n' 2>/dev/null \
-    | sort -rn | awk '{print $2}' | head -100)
+  done < <(_cc_deck_find_sessions "$HOME/.claude/projects")
 
   if [[ ${#files[@]} -eq 0 ]]; then
     echo "[cc-deck] no sessions found"
@@ -135,7 +148,7 @@ cc-deck() {
     local session_id
     session_id="$(basename "$filepath" .jsonl)"
     local mtime
-    mtime="$(stat -c '%y' "$filepath" 2>/dev/null | cut -c1-16)"
+    mtime="$(_cc_deck_stat_mtime "$filepath")"
     local short_cwd="${cwd/#$HOME/~}"
     local marker="  "
     [[ "$cwd" == "$current_dir" ]] && marker=$'\033[32m*\033[0m '
