@@ -265,7 +265,7 @@ function cc-deck {
                 }
                 $allEntries.AddRange($sessionEntries)
 
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: >  ^K: pin  ^R: rm  ^/: help  ESC: quit"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab:cycle  ^K: pin  ^R: rm  ^/: help  ESC: quit"
 
                 $result = $allEntries | fzf `
                     --ansi `

@@ -40,7 +40,7 @@ ESC = '\033'
 header = (
     f'{ESC}[1;33m[TODO]{ESC}[0m=auto-pinned  '
     f'{ESC}[1;35m[PIN]{ESC}[0m=manual | '
-    f'Enter: {label}  Tab: >  '
+    f'Enter: {label}  Tab:cycle  '
     f'^K: pin  ^R: rm  ^/: help  ESC: quit'
 )
 print(f'change-header({header})')
