@@ -159,14 +159,6 @@ cc-deck() {
   fi
   local mode="$saved_mode"
 
-  local enter_label
-  case "$saved_mode" in
-    api)           enter_label="claude-api" ;;
-    dangerous)     enter_label="skip-permissions" ;;
-    api-dangerous) enter_label="api+skip" ;;
-    *)             enter_label="$default_cmd" ;;
-  esac
-
   local session_id cwd
 
   if command -v fzf &>/dev/null; then
@@ -177,12 +169,6 @@ cc-deck() {
       else
         mode=$(_cc_deck_load_mode)
       fi
-      case "$mode" in
-        api)           enter_label="claude-api" ;;
-        dangerous)     enter_label="skip-permissions" ;;
-        api-dangerous) enter_label="api+skip" ;;
-        *)             enter_label="$default_cmd" ;;
-      esac
 
       # Rebuild pinned entries each loop (reflects pin state changes)
       local pinned_entries=()
@@ -206,7 +192,8 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab:cycle  ^K: pin  ^R: rm  ^/: help  ESC: quit' \
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | ^K: pin  ^R: rm  ^/: help  ESC: quit' \
+          "--info-command=python3 \"$_CC_DECK_DIR/lib/mode_info.py\"" \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/)
 

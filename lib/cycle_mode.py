@@ -11,15 +11,8 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 HOME = os.path.expanduser('~')
 MODE_FILE = os.path.join(HOME, '.claude', '.cc-deck-mode')
-DEFAULT_CMD = os.environ.get('CLAUDE_DECK_CMD', 'claude')
 
 CYCLE = ['default', 'api', 'dangerous', 'api-dangerous']
-LABELS = {
-    'default':       DEFAULT_CMD,
-    'api':           'claude-api',
-    'dangerous':     'skip-permissions',
-    'api-dangerous': 'api+skip',
-}
 
 try:
     m = open(MODE_FILE, encoding='utf-8').read().strip()
@@ -35,12 +28,10 @@ try:
 except Exception:
     pass
 
-label = LABELS[next_mode]
 ESC = '\033'
 header = (
     f'{ESC}[1;33m[TODO]{ESC}[0m=auto-pinned  '
     f'{ESC}[1;35m[PIN]{ESC}[0m=manual | '
-    f'Enter: {label}  Tab:cycle  '
     f'^K: pin  ^R: rm  ^/: help  ESC: quit'
 )
 print(f'change-header({header})')
