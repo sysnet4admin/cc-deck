@@ -262,13 +262,13 @@ function cc-deck {
                 $modeColor = switch ($mode) {
                     "api"           { "${ESC}[1;34m" }
                     "dangerous"     { "${ESC}[1;31m" }
-                    "api-dangerous" { "${ESC}[1;35m" }
+                    "api-dangerous" { "${ESC}[1;36m" }
                     default         { "${ESC}[1;32m" }
                 }
                 $modeLabel = switch ($mode) {
                     "api"           { "claude-api" }
-                    "dangerous"     { "skip-perm" }
-                    "api-dangerous" { "api+skip" }
+                    "dangerous"     { "claude+skip" }
+                    "api-dangerous" { "claude-api+skip" }
                     default         { $defaultCmd }
                 }
                 $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"

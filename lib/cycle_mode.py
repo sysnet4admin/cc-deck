@@ -17,14 +17,14 @@ CYCLE = ['default', 'api', 'dangerous', 'api-dangerous']
 LABELS = {
     'default':       DEFAULT_CMD,
     'api':           'claude-api',
-    'dangerous':     'skip-perm',
-    'api-dangerous': 'api+skip',
+    'dangerous':     'claude+skip',
+    'api-dangerous': 'claude-api+skip',
 }
 COLORS = {
     'default':       '\033[1;32m',   # bold green
     'api':           '\033[1;34m',   # bold blue
     'dangerous':     '\033[1;31m',   # bold red
-    'api-dangerous': '\033[1;35m',   # bold magenta
+    'api-dangerous': '\033[1;36m',   # bold cyan
 }
 
 try:
