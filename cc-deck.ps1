@@ -263,7 +263,7 @@ function cc-deck {
                 }
                 $allEntries.AddRange($sessionEntries)
 
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: mode  ^K: pin  ^R: rm  ^/: help  ESC: quit"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: ▶  ^K: pin  ^R: rm  ^/: help  ESC: quit"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -322,39 +322,21 @@ function cc-deck {
                     continue
                 }
 
-                # Tab: mode picker
+                # Tab: cycle mode
                 if ($key -eq "tab") {
-                    $mk = @{
-                        'default'       = if ($mode -eq 'default')       { "${ESC}[32m*${ESC}[0m" } else { " " }
-                        'api'           = if ($mode -eq 'api')           { "${ESC}[32m*${ESC}[0m" } else { " " }
-                        'dangerous'     = if ($mode -eq 'dangerous')     { "${ESC}[32m*${ESC}[0m" } else { " " }
-                        'api-dangerous' = if ($mode -eq 'api-dangerous') { "${ESC}[32m*${ESC}[0m" } else { " " }
+                    $mode = switch ($mode) {
+                        "default"       { "api" }
+                        "api"           { "dangerous" }
+                        "dangerous"     { "api-dangerous" }
+                        "api-dangerous" { "default" }
                     }
-                    $modeChoices = @(
-                        "default`t$($mk['default']) claude (default)         ^O   Normal Claude Code sessions"
-                        "api`t$($mk['api']) claude-api               ^A   Alternative API endpoint"
-                        "dangerous`t$($mk['dangerous']) skip-permissions         ^S   claude --dangerously-skip-permissions"
-                        "api-dangerous`t$($mk['api-dangerous']) api + skip               ^X   claude-api --dangerously-skip-permissions"
-                    )
-                    $picked = $modeChoices | fzf `
-                        --ansi `
-                        "--delimiter=`t" `
-                        --with-nth=2 `
-                        --height=8 `
-                        --reverse `
-                        --no-sort `
-                        "--prompt=mode> " `
-                        "--header=Select resume mode  (Enter to apply, Esc to cancel)"
-                    if ($picked) {
-                        $mode = ($picked -split "`t")[0]
-                        $enterLabel = switch ($mode) {
-                            'api'           { 'claude-api' }
-                            'dangerous'     { 'skip-permissions' }
-                            'api-dangerous' { 'api+skip' }
-                            default         { $defaultCmd }
-                        }
-                        _cc_deck_save_mode $mode
+                    $enterLabel = switch ($mode) {
+                        'api'           { 'claude-api' }
+                        'dangerous'     { 'skip-permissions' }
+                        'api-dangerous' { 'api+skip' }
+                        default         { $defaultCmd }
                     }
+                    _cc_deck_save_mode $mode
                     continue
                 }
 
@@ -364,7 +346,7 @@ function cc-deck {
                     Write-Host "  cc-deck key bindings"
                     Write-Host "  $(([string]::new([char]0x2500, 54)))"
                     Write-Host "  Enter       Resume with current mode"
-                    Write-Host "  Tab         Open mode picker (with descriptions)"
+                    Write-Host "  Tab         Cycle resume mode (default → api → skip → api+skip)"
                     Write-Host "  Ctrl-O      Resume with: claude (default)"
                     Write-Host "  Ctrl-A      Resume with: claude-api"
                     Write-Host "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"

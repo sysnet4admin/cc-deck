@@ -19,7 +19,7 @@ Claude Code sessions pile up across projects. When you need to get back to somet
 - **Manual PIN** — `Ctrl-K` to pin / unpin any session
 - **Smart resume** — automatically `cd`s to the original directory before resuming
 - **4 resume modes** — `claude`, `claude-api`, `--dangerously-skip-permissions`, and combinations
-- **Tab mode picker** — browse and select resume mode with descriptions
+- **Tab mode cycle** — press Tab to rotate through resume modes; current mode shown in header
 - **Mode persistence** — last selected mode remembered across runs
 - **Auto-update** — daily background update check; `cc-deck update` to update manually
 - **Fast** — mtime-based cache, ~0.04s on repeat runs
@@ -88,7 +88,7 @@ cc-deck update
 | Key | Action |
 |-----|--------|
 | `Enter` | Resume with last saved mode |
-| `Tab` | Open mode picker (with descriptions) |
+| `Tab` | Cycle resume mode (default → api → skip → api+skip) |
 | `Ctrl-K` | Pin / unpin current session |
 | `Ctrl-R` | Mark TODO as done / remove PIN |
 | `Ctrl-O` | Resume with `claude` |

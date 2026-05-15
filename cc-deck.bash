@@ -203,7 +203,7 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: mode  ^K: pin  ^R: rm  ^/: help  ESC: quit' \
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: ▶  ^K: pin  ^R: rm  ^/: help  ESC: quit' \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/)
 
       [[ -z "$result" ]] && return
@@ -243,35 +243,21 @@ cc-deck() {
         continue
       fi
 
-      # Tab: mode picker
+      # Tab: cycle mode
       if [[ "$key" == "tab" ]]; then
-        local mk_default=" " mk_api=" " mk_dangerous=" " mk_apidangerous=" "
         case "$mode" in
-          default)       mk_default=$'\033[32m*\033[0m' ;;
-          api)           mk_api=$'\033[32m*\033[0m' ;;
-          dangerous)     mk_dangerous=$'\033[32m*\033[0m' ;;
-          api-dangerous) mk_apidangerous=$'\033[32m*\033[0m' ;;
+          default)       mode="api" ;;
+          api)           mode="dangerous" ;;
+          dangerous)     mode="api-dangerous" ;;
+          api-dangerous) mode="default" ;;
         esac
-        local picked
-        picked=$(printf '%s\n' \
-          "default	${mk_default} claude (default)         ^O   Normal Claude Code sessions" \
-          "api	${mk_api} claude-api               ^A   Alternative API endpoint" \
-          "dangerous	${mk_dangerous} skip-permissions         ^S   claude --dangerously-skip-permissions" \
-          "api-dangerous	${mk_apidangerous} api + skip               ^X   claude-api --dangerously-skip-permissions" \
-          | fzf --ansi --delimiter=$'\t' --with-nth=2 \
-                --height=8 --reverse --no-sort \
-                --prompt="mode> " \
-                --header="Select resume mode  (Enter to apply, Esc to cancel)")
-        if [[ -n "$picked" ]]; then
-          mode="$(echo "$picked" | cut -f1)"
-          case "$mode" in
-            api)           enter_label="claude-api" ;;
-            dangerous)     enter_label="skip-permissions" ;;
-            api-dangerous) enter_label="api+skip" ;;
-            *)             enter_label="$default_cmd" ;;
-          esac
-          _cc_deck_save_mode "$mode"
-        fi
+        case "$mode" in
+          api)           enter_label="claude-api" ;;
+          dangerous)     enter_label="skip-permissions" ;;
+          api-dangerous) enter_label="api+skip" ;;
+          *)             enter_label="$default_cmd" ;;
+        esac
+        _cc_deck_save_mode "$mode"
         continue
       fi
 
@@ -281,7 +267,7 @@ cc-deck() {
         echo "  cc-deck key bindings"
         echo "  ──────────────────────────────────────────────────────"
         echo "  Enter       Resume with current mode"
-        echo "  Tab         Open mode picker (with descriptions)"
+        echo "  Tab         Cycle resume mode (default → api → skip → api+skip)"
         echo "  Ctrl-O      Resume with: claude (default)"
         echo "  Ctrl-A      Resume with: claude-api"
         echo "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"
