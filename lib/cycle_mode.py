@@ -47,7 +47,7 @@ mcolor = COLORS[next_mode]
 header = (
     f'{ESC}[1;33m[TODO]{ESC}[0m=auto-pinned  '
     f'{ESC}[1;35m[PIN]{ESC}[0m=manual | '
-    f'^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit │ '
+    f'^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | '
     f'{mcolor}[{label}]{ESC}[0m'
 )
 print(f'change-header({header})')

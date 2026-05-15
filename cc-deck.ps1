@@ -271,7 +271,7 @@ function cc-deck {
                     "api-dangerous" { "api+skip" }
                     default         { $defaultCmd }
                 }
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit │ ${modeColor}[${modeLabel}]${ESC}[0m"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"
 
                 $result = $allEntries | fzf `
                     --ansi `

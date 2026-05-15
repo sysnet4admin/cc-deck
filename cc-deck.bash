@@ -200,7 +200,7 @@ cc-deck() {
         api-dangerous) mcolor="${E}[1;35m"; mlabel="api+skip" ;;
         *)             mcolor="${E}[1;32m"; mlabel="$default_cmd" ;;
       esac
-      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit │ ${mcolor}[${mlabel}]${E}[0m"
+      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
 
       local result
       result=$(printf '%s\n' "${all_entries[@]}" \
