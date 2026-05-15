@@ -80,12 +80,14 @@ cc-deck
 | 키 | 동작 |
 |----|------|
 | `Enter` | 마지막 저장된 모드로 재개 |
+| `Tab` | 모드 선택 (설명 포함) |
 | `Ctrl-K` | 현재 세션 고정 / 해제 |
 | `Ctrl-R` | TODO 완료 처리 / PIN 제거 |
 | `Ctrl-O` | `claude`로 재개 |
 | `Ctrl-A` | `claude-api`로 재개 |
 | `Ctrl-S` | `claude --dangerously-skip-permissions`로 재개 |
 | `Ctrl-X` | `claude-api --dangerously-skip-permissions`로 재개 |
+| `Ctrl-/` | 도움말 보기 |
 | `ESC` | 종료 |
 
 ### 세션 목록

@@ -80,12 +80,14 @@ cc-deck
 | Key | Action |
 |-----|--------|
 | `Enter` | Resume with last saved mode |
+| `Tab` | Open mode picker (with descriptions) |
 | `Ctrl-K` | Pin / unpin current session |
 | `Ctrl-R` | Mark TODO as done / remove PIN |
 | `Ctrl-O` | Resume with `claude` |
 | `Ctrl-A` | Resume with `claude-api` |
 | `Ctrl-S` | Resume with `claude --dangerously-skip-permissions` |
 | `Ctrl-X` | Resume with `claude-api --dangerously-skip-permissions` |
+| `Ctrl-/` | Show help |
 | `ESC` | Quit |
 
 ### Session list
