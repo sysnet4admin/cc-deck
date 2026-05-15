@@ -179,8 +179,6 @@ cc-deck() {
       else
         mode="$(_cc_deck_load_mode)"
       fi
-      export _CC_DECK_COLS="${COLUMNS:-$(tput cols 2>/dev/null || echo 100)}"
-
       # Rebuild pinned entries each loop
       local pinned_entries=()
       while IFS=$'\t' read -r raw_id cwd_p display; do
@@ -194,6 +192,16 @@ cc-deck() {
       fi
       for e in "${session_entries[@]}"; do all_entries+=("$e"); done
 
+      local E=$'\033'
+      local mcolor mlabel
+      case "$mode" in
+        api)           mcolor="${E}[1;34m"; mlabel="claude-api" ;;
+        dangerous)     mcolor="${E}[1;31m"; mlabel="skip-perm" ;;
+        api-dangerous) mcolor="${E}[1;35m"; mlabel="api+skip" ;;
+        *)             mcolor="${E}[1;32m"; mlabel="$default_cmd" ;;
+      esac
+      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit │ ${mcolor}[${mlabel}]${E}[0m"
+
       local result
       result=$(printf '%s\n' "${all_entries[@]}" \
         | fzf \
@@ -203,9 +211,7 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | ^K: pin  ^R: rm  ^/: help  ESC: quit' \
-          "--info-command=python3 \"$_CC_DECK_DIR/lib/mode_info.py\"" \
-          --no-separator \
+          "--header=$header" \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/)
 

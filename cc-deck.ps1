@@ -236,15 +236,13 @@ function cc-deck {
             $cwd       = $null
             $ESC       = [char]0x1B
 
-            # Env vars for fzf transform/info-command (runs via cmd.exe, expands %VAR%)
+            # Env vars for fzf transform (runs via cmd.exe, expands %VAR%)
             $env:_CC_DECK_PY    = $global:_CC_DECK.Python
             $env:_CC_DECK_CYCLE = "`"$($global:_CC_DECK.Dir)\lib\cycle_mode.py`""
-            $env:_CC_DECK_INFO  = "`"$($global:_CC_DECK.Dir)\lib\mode_info.py`""
 
             while ($true) {
                 # Sync mode from file at each iteration (Tab updates file in-place)
                 $mode = if ($env:CLAUDE_DECK_CMD) { "default" } else { _cc_deck_load_mode }
-                $env:_CC_DECK_COLS = [Console]::WindowWidth
 
                 # Rebuild pinned entries (reflects state changes from Ctrl-K)
                 $pinnedEntries = [System.Collections.Generic.List[string]]::new()
@@ -261,7 +259,19 @@ function cc-deck {
                 }
                 $allEntries.AddRange($sessionEntries)
 
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  ^/: help  ESC: quit"
+                $modeColor = switch ($mode) {
+                    "api"           { "${ESC}[1;34m" }
+                    "dangerous"     { "${ESC}[1;31m" }
+                    "api-dangerous" { "${ESC}[1;35m" }
+                    default         { "${ESC}[1;32m" }
+                }
+                $modeLabel = switch ($mode) {
+                    "api"           { "claude-api" }
+                    "dangerous"     { "skip-perm" }
+                    "api-dangerous" { "api+skip" }
+                    default         { $defaultCmd }
+                }
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit │ ${modeColor}[${modeLabel}]${ESC}[0m"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -271,8 +281,6 @@ function cc-deck {
                     --reverse `
                     "--prompt=cc-deck> " `
                     "--header=$header" `
-                    "--info-command=%_CC_DECK_PY% %_CC_DECK_INFO%" `
-                    --no-separator `
                     "--bind=tab:transform:%_CC_DECK_PY% %_CC_DECK_CYCLE%" `
                     --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/
 

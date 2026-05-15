@@ -11,8 +11,21 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 HOME = os.path.expanduser('~')
 MODE_FILE = os.path.join(HOME, '.claude', '.cc-deck-mode')
+DEFAULT_CMD = os.environ.get('CLAUDE_DECK_CMD', 'claude')
 
 CYCLE = ['default', 'api', 'dangerous', 'api-dangerous']
+LABELS = {
+    'default':       DEFAULT_CMD,
+    'api':           'claude-api',
+    'dangerous':     'skip-perm',
+    'api-dangerous': 'api+skip',
+}
+COLORS = {
+    'default':       '\033[1;32m',   # bold green
+    'api':           '\033[1;34m',   # bold blue
+    'dangerous':     '\033[1;31m',   # bold red
+    'api-dangerous': '\033[1;35m',   # bold magenta
+}
 
 try:
     m = open(MODE_FILE, encoding='utf-8').read().strip()
@@ -28,10 +41,13 @@ try:
 except Exception:
     pass
 
-ESC = '\033'
+ESC    = '\033'
+label  = LABELS[next_mode]
+mcolor = COLORS[next_mode]
 header = (
     f'{ESC}[1;33m[TODO]{ESC}[0m=auto-pinned  '
     f'{ESC}[1;35m[PIN]{ESC}[0m=manual | '
-    f'^K: pin  ^R: rm  ^/: help  ESC: quit'
+    f'^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit │ '
+    f'{mcolor}[{label}]{ESC}[0m'
 )
 print(f'change-header({header})')
