@@ -229,17 +229,6 @@ function cc-deck {
             return
         }
 
-        # Resolve mode
-        $savedMode = if ($env:CLAUDE_DECK_CMD) { "default" } else { _cc_deck_load_mode }
-        $mode = $savedMode
-
-        $enterLabel = switch ($savedMode) {
-            "api"           { "claude-api" }
-            "dangerous"     { "skip-permissions" }
-            "api-dangerous" { "api+skip" }
-            default         { $defaultCmd }
-        }
-
         $hasFzf = $null -ne (Get-Command fzf -ErrorAction SilentlyContinue)
 
         if ($hasFzf) {
@@ -247,7 +236,20 @@ function cc-deck {
             $cwd       = $null
             $ESC       = [char]0x1B
 
+            # Env vars for fzf transform (runs via cmd.exe, expands %VAR%)
+            $env:_CC_DECK_PY    = $global:_CC_DECK.Python
+            $env:_CC_DECK_CYCLE = "`"$($global:_CC_DECK.Dir)\lib\cycle_mode.py`""
+
             while ($true) {
+                # Sync mode from file at each iteration (Tab updates file in-place)
+                $mode = if ($env:CLAUDE_DECK_CMD) { "default" } else { _cc_deck_load_mode }
+                $enterLabel = switch ($mode) {
+                    "api"           { "claude-api" }
+                    "dangerous"     { "skip-permissions" }
+                    "api-dangerous" { "api+skip" }
+                    default         { $defaultCmd }
+                }
+
                 # Rebuild pinned entries (reflects state changes from Ctrl-K)
                 $pinnedEntries = [System.Collections.Generic.List[string]]::new()
                 $pinned = _cc_deck_load_pinned
@@ -263,7 +265,7 @@ function cc-deck {
                 }
                 $allEntries.AddRange($sessionEntries)
 
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: ▶  ^K: pin  ^R: rm  ^/: help  ESC: quit"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | Enter: ${enterLabel}  Tab: >  ^K: pin  ^R: rm  ^/: help  ESC: quit"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -273,14 +275,15 @@ function cc-deck {
                     --reverse `
                     "--prompt=cc-deck> " `
                     "--header=$header" `
-                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/
+                    "--bind=tab:transform:%_CC_DECK_PY% %_CC_DECK_CYCLE%" `
+                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/
 
                 if (-not $result) { return }
 
                 # fzf --expect: first line=key (empty=Enter), second line=selected item.
                 # PowerShell sometimes drops the empty first line on Enter, so detect by content.
                 $resultArr = @($result)
-                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','tab','ctrl-/')
+                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','ctrl-/')
                 if ($resultArr.Count -ge 2 -and ($resultArr[0] -in $knownKeys -or $resultArr[0] -eq '')) {
                     $key      = $resultArr[0]
                     $selected = $resultArr[1]
@@ -322,31 +325,13 @@ function cc-deck {
                     continue
                 }
 
-                # Tab: cycle mode
-                if ($key -eq "tab") {
-                    $mode = switch ($mode) {
-                        "default"       { "api" }
-                        "api"           { "dangerous" }
-                        "dangerous"     { "api-dangerous" }
-                        "api-dangerous" { "default" }
-                    }
-                    $enterLabel = switch ($mode) {
-                        'api'           { 'claude-api' }
-                        'dangerous'     { 'skip-permissions' }
-                        'api-dangerous' { 'api+skip' }
-                        default         { $defaultCmd }
-                    }
-                    _cc_deck_save_mode $mode
-                    continue
-                }
-
                 # Ctrl-/: help
                 if ($key -eq "ctrl-/") {
                     Write-Host ""
                     Write-Host "  cc-deck key bindings"
                     Write-Host "  $(([string]::new([char]0x2500, 54)))"
                     Write-Host "  Enter       Resume with current mode"
-                    Write-Host "  Tab         Cycle resume mode (default → api → skip → api+skip)"
+                    Write-Host "  Tab         Cycle resume mode (default > api > skip > api+skip)"
                     Write-Host "  Ctrl-O      Resume with: claude (default)"
                     Write-Host "  Ctrl-A      Resume with: claude-api"
                     Write-Host "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"

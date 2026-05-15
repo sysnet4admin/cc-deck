@@ -181,6 +181,19 @@ cc-deck() {
 
   if command -v fzf &>/dev/null; then
     while true; do
+      # Sync mode from file at each iteration (Tab updates file in-place)
+      if [[ -n "$CLAUDE_DECK_CMD" ]]; then
+        mode="default"
+      else
+        mode="$(_cc_deck_load_mode)"
+      fi
+      case "$mode" in
+        api)           enter_label="claude-api" ;;
+        dangerous)     enter_label="skip-permissions" ;;
+        api-dangerous) enter_label="api+skip" ;;
+        *)             enter_label="$default_cmd" ;;
+      esac
+
       # Rebuild pinned entries each loop
       local pinned_entries=()
       while IFS=$'\t' read -r raw_id cwd_p display; do
@@ -203,8 +216,9 @@ cc-deck() {
           --height=60% \
           --reverse \
           --prompt="cc-deck> " \
-          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: ▶  ^K: pin  ^R: rm  ^/: help  ESC: quit' \
-          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,tab,ctrl-/)
+          --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | Enter: '"${enter_label}"'  Tab: >  ^K: pin  ^R: rm  ^/: help  ESC: quit' \
+          "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/)
 
       [[ -z "$result" ]] && return
 
@@ -243,31 +257,13 @@ cc-deck() {
         continue
       fi
 
-      # Tab: cycle mode
-      if [[ "$key" == "tab" ]]; then
-        case "$mode" in
-          default)       mode="api" ;;
-          api)           mode="dangerous" ;;
-          dangerous)     mode="api-dangerous" ;;
-          api-dangerous) mode="default" ;;
-        esac
-        case "$mode" in
-          api)           enter_label="claude-api" ;;
-          dangerous)     enter_label="skip-permissions" ;;
-          api-dangerous) enter_label="api+skip" ;;
-          *)             enter_label="$default_cmd" ;;
-        esac
-        _cc_deck_save_mode "$mode"
-        continue
-      fi
-
       # Ctrl-/: help
       if [[ "$key" == "ctrl-/" ]]; then
         echo ""
         echo "  cc-deck key bindings"
         echo "  ──────────────────────────────────────────────────────"
         echo "  Enter       Resume with current mode"
-        echo "  Tab         Cycle resume mode (default → api → skip → api+skip)"
+        echo "  Tab         Cycle resume mode (default > api > skip > api+skip)"
         echo "  Ctrl-O      Resume with: claude (default)"
         echo "  Ctrl-A      Resume with: claude-api"
         echo "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"
