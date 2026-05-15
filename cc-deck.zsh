@@ -169,6 +169,7 @@ cc-deck() {
       else
         mode=$(_cc_deck_load_mode)
       fi
+      export _CC_DECK_COLS="${COLUMNS:-$(tput cols 2>/dev/null || echo 100)}"
 
       # Rebuild pinned entries each loop (reflects pin state changes)
       local pinned_entries=()
@@ -194,6 +195,7 @@ cc-deck() {
           --prompt="cc-deck> " \
           --header=$'\033[1;33m[TODO]\033[0m=auto-pinned  \033[1;35m[PIN]\033[0m=manual | ^K: pin  ^R: rm  ^/: help  ESC: quit' \
           "--info-command=python3 \"$_CC_DECK_DIR/lib/mode_info.py\"" \
+          --no-separator \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/)
 

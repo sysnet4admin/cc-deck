@@ -7,7 +7,7 @@ writes it back, and prints a fzf change-header(...) action to stdout.
 import os, sys
 
 if hasattr(sys.stdout, 'reconfigure'):
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding='utf-8', newline='\n')
 
 HOME = os.path.expanduser('~')
 MODE_FILE = os.path.join(HOME, '.claude', '.cc-deck-mode')

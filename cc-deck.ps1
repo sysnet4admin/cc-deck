@@ -244,6 +244,7 @@ function cc-deck {
             while ($true) {
                 # Sync mode from file at each iteration (Tab updates file in-place)
                 $mode = if ($env:CLAUDE_DECK_CMD) { "default" } else { _cc_deck_load_mode }
+                $env:_CC_DECK_COLS = [Console]::WindowWidth
 
                 # Rebuild pinned entries (reflects state changes from Ctrl-K)
                 $pinnedEntries = [System.Collections.Generic.List[string]]::new()
@@ -271,6 +272,7 @@ function cc-deck {
                     "--prompt=cc-deck> " `
                     "--header=$header" `
                     "--info-command=%_CC_DECK_PY% %_CC_DECK_INFO%" `
+                    --no-separator `
                     "--bind=tab:transform:%_CC_DECK_PY% %_CC_DECK_CYCLE%" `
                     --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/
 
