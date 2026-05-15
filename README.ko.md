@@ -95,7 +95,7 @@ cc-deck update
 | `Ctrl-A` | `claude-api`로 재개 |
 | `Ctrl-S` | `claude --dangerously-skip-permissions`로 재개 |
 | `Ctrl-X` | `claude-api --dangerously-skip-permissions`로 재개 |
-| `Ctrl-/` | 도움말 보기 |
+| `F1` | 도움말 보기 |
 | `ESC` | 종료 |
 
 ### 세션 목록

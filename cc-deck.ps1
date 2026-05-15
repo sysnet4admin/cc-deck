@@ -66,7 +66,7 @@ function _cc_deck_resume {
     if ($SessionId.StartsWith('TODO:')) { $SessionId = $SessionId.Substring(5) }
     $SessionId = $SessionId.Trim()
     # Final guard: if not a bare UUID (e.g. drive-letter prefix leaked in), extract UUID
-    $uuidPattern = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    $uuidPattern = '(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     if ($SessionId -notmatch "^${uuidPattern}$") {
         $m = [regex]::Match($SessionId, $uuidPattern)
         if ($m.Success) { $SessionId = $m.Value }
@@ -75,12 +75,12 @@ function _cc_deck_resume {
     $currentDir = (Get-Location).Path
 
     if ($Cwd -and ($Cwd -ne $currentDir)) {
-        if (Test-Path $Cwd -PathType Container) {
+        if (Test-Path -LiteralPath $Cwd -PathType Container) {
             $shortCwd = if ($Cwd.StartsWith($HOME, [System.StringComparison]::OrdinalIgnoreCase)) {
                 '~' + $Cwd.Substring($HOME.Length)
             } else { $Cwd }
             Write-Host "cd $shortCwd"
-            Set-Location $Cwd
+            Set-Location -LiteralPath $Cwd
         } else {
             Write-Host "[cc-deck] WARNING: '$Cwd' is not accessible."
             Write-Host "[cc-deck] claude --resume requires the original directory to be reachable."
@@ -98,8 +98,11 @@ function _cc_deck_resume {
         "api-dangerous" { claude-api --dangerously-skip-permissions --resume $SessionId }
         default {
             if ($env:CLAUDE_DECK_CMD) { & $env:CLAUDE_DECK_CMD --resume $SessionId }
-            else { claude --resume $SessionId }
+            else                      { claude --resume $SessionId }
         }
+    }
+    if ($LASTEXITCODE -and $LASTEXITCODE -ne 0) {
+        Write-Host "[cc-deck] claude exited with code $LASTEXITCODE (session: $SessionId)"
     }
 }
 
@@ -115,6 +118,7 @@ function _cc_deck_resume {
 #   Ctrl-A   resume with: claude-api
 #   Ctrl-S   resume with: claude --dangerously-skip-permissions
 #   Ctrl-X   resume with: claude-api --dangerously-skip-permissions
+#   F1       show key bindings help
 #
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command
@@ -173,11 +177,13 @@ function cc-deck {
     $savedConsoleInEnc  = [Console]::InputEncoding
 
     try {
-        # Switch everything to UTF-8 so fzf receives Korean correctly
+        # Switch everything to UTF-8 (no-BOM) so fzf receives Korean correctly.
+        # [System.Text.Encoding]::UTF8 emits BOM in PS5.1/.NET4; use the explicit no-BOM constructor.
         chcp 65001 | Out-Null
-        $OutputEncoding            = [System.Text.Encoding]::UTF8
-        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-        [Console]::InputEncoding  = [System.Text.Encoding]::UTF8
+        $noBomUtf8                 = [System.Text.UTF8Encoding]::new($false)
+        $OutputEncoding            = $noBomUtf8
+        [Console]::OutputEncoding = $noBomUtf8
+        [Console]::InputEncoding  = $noBomUtf8
 
         $currentDir = (Get-Location).Path
         $defaultCmd = if ($env:CLAUDE_DECK_CMD) { $env:CLAUDE_DECK_CMD } else { "claude" }
@@ -236,9 +242,10 @@ function cc-deck {
             $cwd       = $null
             $ESC       = [char]0x1B
 
-            # Env vars for fzf transform (runs via cmd.exe, expands %VAR%)
+            # Env vars for fzf transform/execute (runs via cmd.exe, expands %VAR%)
             $env:_CC_DECK_PY    = $global:_CC_DECK.Python
             $env:_CC_DECK_CYCLE = "`"$($global:_CC_DECK.Dir)\lib\cycle_mode.py`""
+            $env:_CC_DECK_HELP  = "`"$($global:_CC_DECK.Dir)\lib\show_help.py`""
 
             while ($true) {
                 # Sync mode from file at each iteration (Tab updates file in-place)
@@ -271,7 +278,7 @@ function cc-deck {
                     "api-dangerous" { "claude-api+skip" }
                     default         { $defaultCmd }
                 }
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  F1: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -282,14 +289,14 @@ function cc-deck {
                     "--prompt=cc-deck> " `
                     "--header=$header" `
                     "--bind=tab:transform:%_CC_DECK_PY% %_CC_DECK_CYCLE%" `
-                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/
+                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,f1,ctrl-m
 
                 if (-not $result) { return }
 
                 # fzf --expect: first line=key (empty=Enter), second line=selected item.
                 # PowerShell sometimes drops the empty first line on Enter, so detect by content.
                 $resultArr = @($result)
-                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','ctrl-/')
+                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','f1','ctrl-m')
                 if ($resultArr.Count -ge 2 -and ($resultArr[0] -in $knownKeys -or $resultArr[0] -eq '')) {
                     $key      = $resultArr[0]
                     $selected = $resultArr[1]
@@ -297,10 +304,18 @@ function cc-deck {
                     $key      = ''
                     $selected = $resultArr[0]
                 }
+                # ctrl-m is Enter (0x0D); normalize to empty string so resume logic works
+                if ($key -eq 'ctrl-m') { $key = '' }
+                # F1: handle before $selected check (fzf may return empty selected for function keys)
+                if ($key -eq 'f1') {
+                    & $global:_CC_DECK.Python "$($global:_CC_DECK.Dir)\lib\show_help.py"
+                    [Console]::Clear()
+                    continue
+                }
                 if (-not $selected) { return }
 
                 $parts = $selected -split "`t", 3
-                $rawId = $parts[0]
+                $rawId = $parts[0].TrimStart([char]0xFEFF)   # strip BOM if PS5.1 pipe added one
                 $cwd   = if ($parts.Count -gt 1) { $parts[1] } else { "" }
 
                 if ($rawId -eq "SEP:") { continue }
@@ -314,11 +329,12 @@ function cc-deck {
                         Start-Sleep -Seconds 1
                     } elseif ($rawId -like "PIN:*") {
                         _cc_deck_toggle_pin ($rawId -replace '^PIN:', '') $cwd $preview
-                        Start-Sleep -Milliseconds 500
+                        Start-Sleep -Milliseconds 800
                     } else {
                         _cc_deck_toggle_pin $rawId $cwd $preview
-                        Start-Sleep -Milliseconds 500
+                        Start-Sleep -Milliseconds 800
                     }
+                    [Console]::Clear()
                     continue
                 }
 
@@ -328,49 +344,34 @@ function cc-deck {
                         _cc_deck_delete $rawId
                         Start-Sleep -Milliseconds 500
                     }
+                    [Console]::Clear()
                     continue
                 }
 
-                # Ctrl-/: help
-                if ($key -eq "ctrl-/") {
-                    Write-Host ""
-                    Write-Host "  cc-deck key bindings"
-                    Write-Host "  $(([string]::new([char]0x2500, 54)))"
-                    Write-Host "  Enter       Resume with current mode"
-                    Write-Host "  Tab         Cycle resume mode (default > api > skip > api+skip)"
-                    Write-Host "  Ctrl-O      Resume with: claude (default)"
-                    Write-Host "  Ctrl-A      Resume with: claude-api"
-                    Write-Host "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"
-                    Write-Host "  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions"
-                    Write-Host "  $(([string]::new([char]0x2500, 54)))"
-                    Write-Host "  Ctrl-K      Pin / unpin session"
-                    Write-Host "  Ctrl-R      Delete selected TODO or PIN"
-                    Write-Host "  Ctrl-/      Show this help"
-                    Write-Host "  ESC         Quit"
-                    Write-Host ""
-                    Write-Host "  Press any key to return..."
-                    $null = [Console]::ReadKey($true)
-                    continue
-                }
-
-                # Mode switch keys
+                # Mode switch: explicit key overrides; Enter re-reads file (Tab cycling updated it)
                 switch ($key) {
                     "ctrl-o" { $mode = "default" }
                     "ctrl-a" { $mode = "api" }
                     "ctrl-s" { $mode = "dangerous" }
                     "ctrl-x" { $mode = "api-dangerous" }
+                    default  { if (-not $env:CLAUDE_DECK_CMD) { $mode = _cc_deck_load_mode } }
                 }
 
                 $sessionId = $rawId -replace '^(TODO:|PIN:)', ''
-                # If result still isn't a bare UUID, extract UUID portion
-                if ($sessionId -notmatch '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
-                    $m2 = [regex]::Match($sessionId, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+                # If result still isn't a bare UUID, extract UUID portion (case-insensitive)
+                if ($sessionId -notmatch '(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$') {
+                    $m2 = [regex]::Match($sessionId, '(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
                     if ($m2.Success) { $sessionId = $m2.Value }
+                    else { $sessionId = '' }
                 }
                 break
             }
 
-            if ($sessionId) { _cc_deck_resume $sessionId $cwd $mode }
+            if ($sessionId) {
+                _cc_deck_resume $sessionId $cwd $mode
+            } else {
+                Write-Host "[cc-deck] could not extract session ID (rawId='$rawId')"
+            }
 
         } else {
             # Fallback: numbered list when fzf is not installed

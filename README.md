@@ -95,7 +95,7 @@ cc-deck update
 | `Ctrl-A` | Resume with `claude-api` |
 | `Ctrl-S` | Resume with `claude --dangerously-skip-permissions` |
 | `Ctrl-X` | Resume with `claude-api --dangerously-skip-permissions` |
-| `Ctrl-/` | Show help |
+| `F1` | Show help |
 | `ESC` | Quit |
 
 ### Session list

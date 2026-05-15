@@ -43,7 +43,7 @@ def extract(filepath):
 
     last_prompt = ''
     with open(filepath, 'rb') as f:
-        f.seek(max(0, size - 20480))
+        f.seek(max(0, size - 102400))
         raw_tail = f.read()
     try:
         tail = raw_tail.decode(enc, errors='replace')
@@ -102,4 +102,6 @@ for filepath in file_list:
     except Exception:
         print(f'{filepath}\t\t', flush=True)
 
-save_cache(new_cache)
+merged = {k: v for k, v in cache.items() if k not in new_cache and os.path.exists(k)}
+merged.update(new_cache)
+save_cache(merged)

@@ -92,6 +92,7 @@ _cc_deck_resume() {
 #   Ctrl-A   resume with: claude-api
 #   Ctrl-S   resume with: claude --dangerously-skip-permissions
 #   Ctrl-X   resume with: claude-api --dangerously-skip-permissions
+#   F1       show key bindings help
 #
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command
@@ -200,7 +201,7 @@ cc-deck() {
         api-dangerous) mcolor="${E}[1;36m"; mlabel="claude-api+skip" ;;
         *)             mcolor="${E}[1;38;2;217;119;87m"; mlabel="$default_cmd" ;;
       esac
-      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
+      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  F1: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
 
       local result
       result=$(printf '%s\n' "${all_entries[@]}" \
@@ -213,13 +214,16 @@ cc-deck() {
           --prompt="cc-deck> " \
           "--header=$header" \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
-          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-/)
+          "--bind=f1:execute(python3 \"$_CC_DECK_DIR/lib/show_help.py\")" \
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-m)
 
       [[ -z "$result" ]] && return
 
       local key selected
       key="$(echo "$result" | head -1)"
       selected="$(echo "$result" | tail -1)"
+      # ctrl-m is Enter (0x0D); normalize to empty string
+      [[ "$key" == "ctrl-m" ]] && key=""
       [[ -z "$selected" ]] && return
 
       local raw_id
@@ -235,9 +239,10 @@ cc-deck() {
         preview="${display#*: }"
         case "$raw_id" in
           TODO:*) echo "[cc-deck] TODO is managed by Claude memory" ; sleep 1 ;;
-          PIN:*)  _cc_deck_toggle_pin "${raw_id#PIN:}" "$cwd" "$preview" ; sleep 0.5 ;;
-          *)      _cc_deck_toggle_pin "$raw_id" "$cwd" "$preview" ; sleep 0.5 ;;
+          PIN:*)  _cc_deck_toggle_pin "${raw_id#PIN:}" "$cwd" "$preview" ; sleep 0.8 ;;
+          *)      _cc_deck_toggle_pin "$raw_id" "$cwd" "$preview" ; sleep 0.8 ;;
         esac
+        clear
         continue
       fi
 
@@ -249,37 +254,17 @@ cc-deck() {
             sleep 0.5
             ;;
         esac
+        clear
         continue
       fi
 
-      # Ctrl-/: help
-      if [[ "$key" == "ctrl-/" ]]; then
-        echo ""
-        echo "  cc-deck key bindings"
-        echo "  ──────────────────────────────────────────────────────"
-        echo "  Enter       Resume with current mode"
-        echo "  Tab         Cycle resume mode (default > api > skip > api+skip)"
-        echo "  Ctrl-O      Resume with: claude (default)"
-        echo "  Ctrl-A      Resume with: claude-api"
-        echo "  Ctrl-S      Resume with: claude --dangerously-skip-permissions"
-        echo "  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions"
-        echo "  ──────────────────────────────────────────────────────"
-        echo "  Ctrl-K      Pin / unpin session"
-        echo "  Ctrl-R      Delete selected TODO or PIN"
-        echo "  Ctrl-/      Show this help"
-        echo "  ESC         Quit"
-        echo ""
-        echo "  Press any key to return..."
-        read -rsn1
-        continue
-      fi
-
-      # Mode switch keys
+      # Mode switch: explicit key overrides; Enter re-reads file (Tab cycling updated it)
       case "$key" in
         ctrl-o) mode="default" ;;
         ctrl-a) mode="api" ;;
         ctrl-s) mode="dangerous" ;;
         ctrl-x) mode="api-dangerous" ;;
+        *)      [[ -z "$CLAUDE_DECK_CMD" ]] && mode=$(_cc_deck_load_mode) ;;
       esac
 
       # Strip prefix and break

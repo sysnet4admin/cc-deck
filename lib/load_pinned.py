@@ -5,6 +5,9 @@ Output: raw_id<TAB>cwd<TAB>display_line  (with ANSI colors)
 """
 import json, os, glob, sys
 
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', newline='\n')
+
 PINS_FILE = sys.argv[1]
 HOME = os.path.expanduser('~')
 

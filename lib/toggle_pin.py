@@ -9,6 +9,13 @@ cwd = sys.argv[2]
 pins_file = sys.argv[3]
 preview = sys.argv[4] if len(sys.argv) > 4 else ''
 
+# Strip BOM and any TODO:/PIN: prefixes that may leak from fzf output
+sid = sid.lstrip('﻿')
+for _prefix in ('TODO:', 'PIN:'):
+    while sid.startswith(_prefix):
+        sid = sid[len(_prefix):]
+sid = sid.strip()
+
 try:
     with open(pins_file, encoding='utf-8') as f:
         pins = json.load(f)

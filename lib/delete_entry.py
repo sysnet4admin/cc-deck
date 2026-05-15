@@ -46,8 +46,32 @@ elif raw_id.startswith('PIN:'):
             pins = json.load(f)
     except Exception:
         pins = {}
+    # Strip BOM and any duplicate PIN: prefixes from session_id (defensive)
+    session_id = session_id.lstrip('﻿')
+    for _p in ('TODO:', 'PIN:'):
+        while session_id.startswith(_p):
+            session_id = session_id[len(_p):]
+    session_id = session_id.strip()
+
+    # Find matching key (handles corrupted keys with BOM/duplicate prefixes)
+    def _clean_key(k):
+        k = k.lstrip('﻿')
+        for _p in ('TODO:', 'PIN:'):
+            while k.startswith(_p):
+                k = k[len(_p):]
+        return k.strip()
+
+    matched = None
     if session_id in pins:
-        del pins[session_id]
+        matched = session_id
+    else:
+        for k in pins:
+            if _clean_key(k) == session_id:
+                matched = k
+                break
+
+    if matched is not None:
+        del pins[matched]
         with open(pins_file, 'w', encoding='utf-8') as f:
             json.dump(pins, f)
         print('[cc-deck] PIN removed')
