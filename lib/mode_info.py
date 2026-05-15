@@ -19,10 +19,10 @@ LABELS = {
     'api-dangerous': 'claude-api+skip',
 }
 COLORS = {
-    'default':       '\033[1;32m',   # bold green
-    'api':           '\033[1;34m',   # bold blue
-    'dangerous':     '\033[1;31m',   # bold red
-    'api-dangerous': '\033[1;36m',   # bold cyan
+    'default':       '\033[1;38;2;217;119;87m',  # Claude Code brand orange #d97757
+    'api':           '\033[1;34m',                # bold blue
+    'dangerous':     '\033[1;31m',                # bold red
+    'api-dangerous': '\033[1;36m',                # bold cyan
 }
 
 try:

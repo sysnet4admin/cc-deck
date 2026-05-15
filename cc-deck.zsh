@@ -188,7 +188,7 @@ cc-deck() {
         api)           mcolor="${E}[1;34m"; mlabel="claude-api" ;;
         dangerous)     mcolor="${E}[1;31m"; mlabel="claude+skip" ;;
         api-dangerous) mcolor="${E}[1;36m"; mlabel="claude-api+skip" ;;
-        *)             mcolor="${E}[1;32m"; mlabel="$default_cmd" ;;
+        *)             mcolor="${E}[1;38;2;217;119;87m"; mlabel="$default_cmd" ;;
       esac
       local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  ^/: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
 

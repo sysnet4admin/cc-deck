@@ -263,7 +263,7 @@ function cc-deck {
                     "api"           { "${ESC}[1;34m" }
                     "dangerous"     { "${ESC}[1;31m" }
                     "api-dangerous" { "${ESC}[1;36m" }
-                    default         { "${ESC}[1;32m" }
+                    default         { "${ESC}[1;38;2;217;119;87m" }
                 }
                 $modeLabel = switch ($mode) {
                     "api"           { "claude-api" }
