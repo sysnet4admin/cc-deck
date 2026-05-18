@@ -31,6 +31,7 @@ Claude Code sessions pile up across projects. When you need to get back to somet
 | | macOS | Windows | Linux |
 |---|---|---|---|
 | Shell | zsh | PowerShell 5.1+ | bash |
+| Git | pre-installed | `winget install Git.Git` | pre-installed |
 | Python | python3 | python (3.x) | python3 |
 | fzf | `brew install fzf` | `winget install junegunn.fzf` | `apt/dnf install fzf` |
 

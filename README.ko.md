@@ -31,6 +31,7 @@
 | | macOS | Windows | Linux |
 |---|---|---|---|
 | 쉘 | zsh | PowerShell 5.1+ | bash |
+| Git | 기본 설치 | `winget install Git.Git` | 기본 설치 |
 | Python | python3 | python (3.x) | python3 |
 | fzf | `brew install fzf` | `winget install junegunn.fzf` | `apt/dnf install fzf` |
 
