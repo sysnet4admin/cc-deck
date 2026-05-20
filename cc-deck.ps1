@@ -130,6 +130,13 @@ function cc-deck {
         return
     }
 
+    # 'cc-deck -q/--quick <prompt>' — instant one-shot query, no session saved
+    if ($Subcommand -eq '-q' -or $Subcommand -eq '--quick') {
+        $prompt = $args -join ' '
+        claude -p --no-session-persistence $prompt
+        return
+    }
+
     # 'cc-deck update' — manual update trigger
     if ($Subcommand -eq 'update') {
         Write-Host "[cc-deck] Checking for updates..."
@@ -265,6 +272,7 @@ function cc-deck {
             $env:_CC_DECK_PY    = $global:_CC_DECK.Python
             $env:_CC_DECK_CYCLE = "`"$($global:_CC_DECK.Dir)\lib\cycle_mode.py`""
             $env:_CC_DECK_HELP  = "`"$($global:_CC_DECK.Dir)\lib\show_help.py`""
+            $env:_CC_DECK_QUICK = "`"$($global:_CC_DECK.Dir)\lib\quick_query.py`""
 
             while ($true) {
                 # Sync mode from file; reset if no longer available
@@ -301,7 +309,7 @@ function cc-deck {
                     "api-dangerous" { "claude-api+skip" }
                     default         { $defaultCmd }
                 }
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  F1: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  ^Q: ask  Tab: cycle  F1: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -312,6 +320,7 @@ function cc-deck {
                     "--prompt=cc-deck> " `
                     "--header=$header" `
                     "--bind=tab:transform:%_CC_DECK_PY% %_CC_DECK_CYCLE%" `
+                    "--bind=ctrl-q:execute(%_CC_DECK_PY% %_CC_DECK_QUICK%)" `
                     --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,f1,ctrl-m
 
                 if (-not $result) { return }

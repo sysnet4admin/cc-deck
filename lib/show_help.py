@@ -28,6 +28,7 @@ HELP = """
   ──────────────────────────────────────────────────────
   Ctrl-K      Pin / unpin session
   Ctrl-R      Delete selected TODO or PIN
+  Ctrl-Q      Quick query (no session saved)
   F1          Show this help
   ESC         Quit
 """

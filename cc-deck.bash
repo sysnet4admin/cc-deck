@@ -108,6 +108,13 @@ _cc_deck_resume() {
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command
 cc-deck() {
+  # 'cc-deck -q/--quick <prompt>' — instant one-shot query, no session saved
+  if [[ "$1" == "-q" || "$1" == "--quick" ]]; then
+    shift
+    claude -p --no-session-persistence "$@"
+    return
+  fi
+
   # 'cc-deck update' — manual update trigger
   if [[ "$1" == "update" ]]; then
     echo "[cc-deck] Checking for updates..."
@@ -227,7 +234,7 @@ cc-deck() {
         api-dangerous) mcolor="${E}[1;36m"; mlabel="claude-api+skip" ;;
         *)             mcolor="${E}[1;38;2;217;119;87m"; mlabel="$default_cmd" ;;
       esac
-      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  Tab: cycle  F1: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
+      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  ^Q: ask  Tab: cycle  F1: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
 
       local result
       result=$(printf '%s\n' "${all_entries[@]}" \
@@ -241,6 +248,7 @@ cc-deck() {
           "--header=$header" \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
           "--bind=f1:execute(python3 \"$_CC_DECK_DIR/lib/show_help.py\")" \
+          "--bind=ctrl-q:execute(python3 \"$_CC_DECK_DIR/lib/quick_query.py\")" \
           --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-m)
 
       [[ -z "$result" ]] && return
