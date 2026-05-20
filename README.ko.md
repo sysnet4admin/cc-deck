@@ -141,6 +141,29 @@ export CLAUDE_DECK_CMD="claude-api"
 $env:CLAUDE_DECK_CMD = "claude-api"
 ```
 
+### 사용 가능한 모드
+
+cc-deck은 어떤 모드를 표시할지 자동으로 감지합니다:
+
+| 조건 | 표시되는 모드 |
+|---|---|
+| `ANTHROPIC_API_KEY` 또는 `ANTHROPIC_AUTH_TOKEN` 설정됨 | 4가지 모두 |
+| 둘 다 없음 | `default`, `dangerous`만 |
+
+LiteLLM, 커스텀 프록시 등 비표준 구성의 경우 직접 지정:
+
+**macOS / Linux:**
+```bash
+export CC_DECK_MODES="default,api,dangerous,api-dangerous"
+```
+
+**Windows:**
+```powershell
+$env:CC_DECK_MODES = "default,api,dangerous,api-dangerous"
+```
+
+사용 가능한 모드 이름: `default`, `api`, `dangerous`, `api-dangerous`
+
 ---
 
 ## 튜토리얼

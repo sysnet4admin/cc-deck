@@ -141,6 +141,29 @@ export CLAUDE_DECK_CMD="claude-api"
 $env:CLAUDE_DECK_CMD = "claude-api"
 ```
 
+### Available modes
+
+cc-deck automatically detects which resume modes to show:
+
+| Condition | Modes shown |
+|---|---|
+| `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` is set | all 4 modes |
+| Neither is set | `default`, `dangerous` only |
+
+For non-standard setups (LiteLLM, custom proxies, etc.), override explicitly:
+
+**macOS / Linux:**
+```bash
+export CC_DECK_MODES="default,api,dangerous,api-dangerous"
+```
+
+**Windows:**
+```powershell
+$env:CC_DECK_MODES = "default,api,dangerous,api-dangerous"
+```
+
+Valid mode names: `default`, `api`, `dangerous`, `api-dangerous`
+
 ---
 
 ## Tutorial

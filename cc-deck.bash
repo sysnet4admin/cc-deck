@@ -136,7 +136,7 @@ cc-deck() {
   local _available_modes
   if [[ -n "$CC_DECK_MODES" ]]; then
     _available_modes="$CC_DECK_MODES"
-  elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
+  elif [[ -n "$ANTHROPIC_API_KEY" || -n "$ANTHROPIC_AUTH_TOKEN" ]]; then
     _available_modes="default,api,dangerous,api-dangerous"
   else
     _available_modes="default,dangerous"
