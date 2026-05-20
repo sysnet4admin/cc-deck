@@ -123,6 +123,17 @@ cc-deck() {
   local current_dir="$(pwd)"
   local default_cmd="${CLAUDE_DECK_CMD:-claude}"
 
+  # Compute available modes: CC_DECK_MODES > ANTHROPIC_API_KEY > default only
+  local _available_modes
+  if [[ -n "$CC_DECK_MODES" ]]; then
+    _available_modes="$CC_DECK_MODES"
+  elif [[ -n "$ANTHROPIC_API_KEY" ]]; then
+    _available_modes="default,api,dangerous,api-dangerous"
+  else
+    _available_modes="default,dangerous"
+  fi
+  export _CC_DECK_AVAILABLE_MODES="$_available_modes"
+
   # Collect recent 100 session files
   local files=()
   while IFS= read -r f; do
@@ -151,12 +162,16 @@ cc-deck() {
     return
   fi
 
-  # Resolve saved/default mode
+  # Resolve saved/default mode; reset if saved mode is no longer available
   local saved_mode
   if [[ -n "$CLAUDE_DECK_CMD" ]]; then
     saved_mode="default"
   else
     saved_mode=$(_cc_deck_load_mode)
+    if [[ ",$_available_modes," != *",$saved_mode,"* ]]; then
+      saved_mode="${_available_modes%%,*}"
+      _cc_deck_save_mode "$saved_mode"
+    fi
   fi
   local mode="$saved_mode"
 
@@ -246,12 +261,12 @@ cc-deck() {
         continue
       fi
 
-      # Mode switch: explicit key overrides; Enter re-reads file (Tab cycling updated it)
+      # Mode switch: only apply if mode is available
       case "$key" in
-        ctrl-o) mode="default" ;;
-        ctrl-a) mode="api" ;;
-        ctrl-s) mode="dangerous" ;;
-        ctrl-x) mode="api-dangerous" ;;
+        ctrl-o) [[ ",$_available_modes," == *,default,* ]] && mode="default" ;;
+        ctrl-a) [[ ",$_available_modes," == *,api,* ]] && mode="api" ;;
+        ctrl-s) [[ ",$_available_modes," == *,dangerous,* ]] && mode="dangerous" ;;
+        ctrl-x) [[ ",$_available_modes," == *,api-dangerous,* ]] && mode="api-dangerous" ;;
         *)      [[ -z "$CLAUDE_DECK_CMD" ]] && mode=$(_cc_deck_load_mode) ;;
       esac
 

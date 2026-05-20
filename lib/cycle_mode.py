@@ -13,7 +13,10 @@ HOME = os.path.expanduser('~')
 MODE_FILE = os.path.join(HOME, '.claude', '.cc-deck-mode')
 DEFAULT_CMD = os.environ.get('CLAUDE_DECK_CMD', 'claude')
 
-CYCLE = ['default', 'api', 'dangerous', 'api-dangerous']
+_ALL_MODES = ['default', 'api', 'dangerous', 'api-dangerous']
+_available_raw = os.environ.get('_CC_DECK_AVAILABLE_MODES', 'default,api,dangerous,api-dangerous')
+_available = {m.strip() for m in _available_raw.split(',')}
+CYCLE = [m for m in _ALL_MODES if m in _available] or ['default']
 LABELS = {
     'default':       DEFAULT_CMD,
     'api':           'claude-api',

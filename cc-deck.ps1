@@ -188,6 +188,16 @@ function cc-deck {
         $currentDir = (Get-Location).Path
         $defaultCmd = if ($env:CLAUDE_DECK_CMD) { $env:CLAUDE_DECK_CMD } else { "claude" }
 
+        # Compute available modes: CC_DECK_MODES > ANTHROPIC_API_KEY > default only
+        $availableModes = if ($env:CC_DECK_MODES) {
+            $env:CC_DECK_MODES -split ',' | ForEach-Object { $_.Trim() }
+        } elseif ($env:ANTHROPIC_API_KEY) {
+            @('default','api','dangerous','api-dangerous')
+        } else {
+            @('default','dangerous')
+        }
+        $env:_CC_DECK_AVAILABLE_MODES = $availableModes -join ','
+
         # Collect recent 100 session files sorted by last write time
         $projectsDir = "$HOME\.claude\projects"
         if (-not (Test-Path $projectsDir)) {
@@ -248,8 +258,12 @@ function cc-deck {
             $env:_CC_DECK_HELP  = "`"$($global:_CC_DECK.Dir)\lib\show_help.py`""
 
             while ($true) {
-                # Sync mode from file at each iteration (Tab updates file in-place)
-                $mode = if ($env:CLAUDE_DECK_CMD) { "default" } else { _cc_deck_load_mode }
+                # Sync mode from file; reset if no longer available
+                $mode = if ($env:CLAUDE_DECK_CMD) { "default" } else {
+                    $m = _cc_deck_load_mode
+                    if ($availableModes -notcontains $m) { $m = $availableModes[0]; _cc_deck_save_mode $m }
+                    $m
+                }
 
                 # Rebuild pinned entries (reflects state changes from Ctrl-K)
                 $pinnedEntries = [System.Collections.Generic.List[string]]::new()
@@ -348,12 +362,12 @@ function cc-deck {
                     continue
                 }
 
-                # Mode switch: explicit key overrides; Enter re-reads file (Tab cycling updated it)
+                # Mode switch: only apply if mode is available
                 switch ($key) {
-                    "ctrl-o" { $mode = "default" }
-                    "ctrl-a" { $mode = "api" }
-                    "ctrl-s" { $mode = "dangerous" }
-                    "ctrl-x" { $mode = "api-dangerous" }
+                    "ctrl-o" { if ($availableModes -contains "default")       { $mode = "default" } }
+                    "ctrl-a" { if ($availableModes -contains "api")           { $mode = "api" } }
+                    "ctrl-s" { if ($availableModes -contains "dangerous")     { $mode = "dangerous" } }
+                    "ctrl-x" { if ($availableModes -contains "api-dangerous") { $mode = "api-dangerous" } }
                     default  { if (-not $env:CLAUDE_DECK_CMD) { $mode = _cc_deck_load_mode } }
                 }
 

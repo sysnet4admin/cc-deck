@@ -6,15 +6,25 @@ import sys, os
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', newline='\n')
 
+_available_raw = os.environ.get('_CC_DECK_AVAILABLE_MODES', 'default,api,dangerous,api-dangerous')
+_available = {m.strip() for m in _available_raw.split(',')}
+
+_mode_lines = []
+if 'default' in _available:
+    _mode_lines.append("  Ctrl-O      Resume with: claude (default)")
+if 'api' in _available:
+    _mode_lines.append("  Ctrl-A      Resume with: claude-api")
+if 'dangerous' in _available:
+    _mode_lines.append("  Ctrl-S      Resume with: claude --dangerously-skip-permissions")
+if 'api-dangerous' in _available:
+    _mode_lines.append("  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions")
+
 HELP = """
   cc-deck key bindings
   ──────────────────────────────────────────────────────
   Enter       Resume with current mode
-  Tab         Cycle resume mode (default > api > skip > api+skip)
-  Ctrl-O      Resume with: claude (default)
-  Ctrl-A      Resume with: claude-api
-  Ctrl-S      Resume with: claude --dangerously-skip-permissions
-  Ctrl-X      Resume with: claude-api --dangerously-skip-permissions
+  Tab         Cycle resume mode
+""" + "\n".join(_mode_lines) + """
   ──────────────────────────────────────────────────────
   Ctrl-K      Pin / unpin session
   Ctrl-R      Delete selected TODO or PIN
