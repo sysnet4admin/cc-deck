@@ -189,9 +189,18 @@ function cc-deck {
         $defaultCmd = if ($env:CLAUDE_DECK_CMD) { $env:CLAUDE_DECK_CMD } else { "claude" }
 
         # Compute available modes: CC_DECK_MODES > ANTHROPIC_API_KEY > default only
+        # Detect api config in PowerShell profile, excluding comment lines
+        $apiPatterns = 'ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|ANTHROPIC_BASE_URL'
+        $rcFiles = @($PROFILE, "$HOME\.bashrc", "$HOME\.bash_profile") | Where-Object { Test-Path $_ }
+        $apiInRc = $rcFiles | ForEach-Object {
+            Get-Content $_ -ErrorAction SilentlyContinue |
+                Where-Object { $_ -notmatch '^\s*#' } |
+                Where-Object { $_ -match $apiPatterns }
+        } | Select-Object -First 1
+
         $availableModes = if ($env:CC_DECK_MODES) {
             $env:CC_DECK_MODES -split ',' | ForEach-Object { $_.Trim() }
-        } elseif ($env:ANTHROPIC_API_KEY -or $env:ANTHROPIC_AUTH_TOKEN) {
+        } elseif ($env:ANTHROPIC_API_KEY -or $env:ANTHROPIC_AUTH_TOKEN -or $apiInRc) {
             @('default','api','dangerous','api-dangerous')
         } else {
             @('default','dangerous')

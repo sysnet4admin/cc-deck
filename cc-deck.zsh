@@ -42,6 +42,18 @@ _cc_deck_delete() {
 _cc_deck_save_mode() { echo "$1" > "$_cc_deck_mode_file" 2>/dev/null }
 _cc_deck_load_mode() { cat "$_cc_deck_mode_file" 2>/dev/null || echo "default" }
 
+# ── API mode detection via shell rc files ──────────────────────────────────────
+# Grep rc files for API-related vars, excluding comment lines (^\s*#)
+_cc_deck_api_in_rc() {
+  local _patterns='ANTHROPIC_API_KEY|ANTHROPIC_AUTH_TOKEN|ANTHROPIC_BASE_URL'
+  local _rc
+  for _rc in "$HOME/.zshrc" "$HOME/.zshenv" "$HOME/.bashrc" "$HOME/.bash_profile"; do
+    [[ -f "$_rc" ]] || continue
+    grep -v '^\s*#' "$_rc" | grep -qE "$_patterns" 2>/dev/null && return 0
+  done
+  return 1
+}
+
 # ── Session resume ─────────────────────────────────────────────────────────────
 # CLAUDE_DECK_CMD env var overrides default command
 # e.g. export CLAUDE_DECK_CMD="claude-api"
@@ -127,7 +139,7 @@ cc-deck() {
   local _available_modes
   if [[ -n "$CC_DECK_MODES" ]]; then
     _available_modes="$CC_DECK_MODES"
-  elif [[ -n "$ANTHROPIC_API_KEY" || -n "$ANTHROPIC_AUTH_TOKEN" ]]; then
+  elif [[ -n "$ANTHROPIC_API_KEY" || -n "$ANTHROPIC_AUTH_TOKEN" ]] || _cc_deck_api_in_rc; then
     _available_modes="default,api,dangerous,api-dangerous"
   else
     _available_modes="default,dangerous"
