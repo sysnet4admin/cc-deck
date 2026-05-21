@@ -50,7 +50,17 @@ _cc_deck_delete() {
 
 # ── Mode persistence ───────────────────────────────────────────────────────────
 _cc_deck_save_mode() { echo "$1" > "$_cc_deck_mode_file" 2>/dev/null; }
-_cc_deck_load_mode() { cat "$_cc_deck_mode_file" 2>/dev/null || echo "default"; }
+_cc_deck_load_mode() {
+  local _raw
+  _raw=$(cat "$_cc_deck_mode_file" 2>/dev/null)
+  case "$_raw" in
+    default|api|dangerous|api-dangerous) echo "$_raw" ;;
+    claude+skip)     echo "dangerous" ;;
+    claude-api+skip) echo "api-dangerous" ;;
+    claude-api)      echo "api" ;;
+    *)               echo "default" ;;
+  esac
+}
 
 # ── API mode detection via shell rc files ──────────────────────────────────────
 _cc_deck_api_in_rc() {

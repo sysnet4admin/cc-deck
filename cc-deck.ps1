@@ -54,7 +54,12 @@ function _cc_deck_save_mode {
 function _cc_deck_load_mode {
     try {
         $m = (Get-Content $global:_CC_DECK.ModeFile -Raw -ErrorAction Stop).Trim()
-        if ($m) { return $m }
+        switch ($m) {
+            { $_ -in 'default','api','dangerous','api-dangerous' } { return $m }
+            'claude+skip'     { return 'dangerous' }
+            'claude-api+skip' { return 'api-dangerous' }
+            'claude-api'      { return 'api' }
+        }
     } catch {}
     return "default"
 }
