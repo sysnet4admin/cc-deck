@@ -117,11 +117,17 @@ cc-deck() {
     else
       mkdir -p "$_CC_DECK_QUICK_DIR"
       python3 "$_CC_DECK_DIR/lib/quick_sessions.py" cleanup
-      local _marker _old_dir
+      local _marker _old_dir _q_mode
       _marker=$(mktemp)
       _old_dir="$(pwd)"
+      _q_mode="$(_cc_deck_load_mode)"
       cd "$_CC_DECK_QUICK_DIR"
-      ${CLAUDE_DECK_CMD:-claude}
+      case "$_q_mode" in
+        api)           claude-api ;;
+        dangerous)     claude --dangerously-skip-permissions ;;
+        api-dangerous) claude-api --dangerously-skip-permissions ;;
+        *)             ${CLAUDE_DECK_CMD:-claude} ;;
+      esac
       cd "$_old_dir"
       python3 "$_CC_DECK_DIR/lib/quick_sessions.py" register "$_marker"
       rm -f "$_marker"
