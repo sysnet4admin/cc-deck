@@ -131,3 +131,15 @@ try:
         print(f'PIN:{sid}\t{cwd}\t\033[1;35m[PIN] \033[0m {short_cwd}: {preview[:70]}')
 except Exception:
     pass
+
+# 3. Quick sessions entry (shows only if any exist)
+QUICK_REGISTRY = os.path.join(HOME, '.claude', '.cc-deck-quick.json')
+try:
+    with open(QUICK_REGISTRY, encoding='utf-8') as f:
+        qreg = json.load(f)
+    count = sum(1 for p in qreg if os.path.exists(p))
+    if count > 0:
+        label = 'sessions' if count > 1 else 'session'
+        print(f'QUICK:\t\t\033[1;32m[Quick]\033[0m ▶ {count} {label}')
+except Exception:
+    pass

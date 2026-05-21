@@ -10,6 +10,7 @@
 _CC_DECK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _cc_deck_mode_file="$HOME/.claude/.cc-deck-mode"
 _cc_deck_pins_file="$HOME/.claude/.cc-deck-pins.json"
+_CC_DECK_QUICK_DIR="$HOME/.cc-deck-quick"
 
 # ── OS-specific helpers (BSD = macOS, GNU = Linux) ────────────────────────────
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -108,17 +109,21 @@ _cc_deck_resume() {
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command
 cc-deck() {
-  # 'cc-deck -q/--quick [prompt]' — ephemeral query, no session kept
+  # 'cc-deck -q/--quick [prompt]' — ephemeral query, no session kept after exit
   if [[ "$1" == "-q" || "$1" == "--quick" ]]; then
     shift
     if [[ -n "$*" ]]; then
       claude -p --no-session-persistence "$@"
     else
-      local _marker
+      mkdir -p "$_CC_DECK_QUICK_DIR"
+      python3 "$_CC_DECK_DIR/lib/quick_sessions.py" cleanup
+      local _marker _old_dir
       _marker=$(mktemp)
+      _old_dir="$(pwd)"
+      cd "$_CC_DECK_QUICK_DIR"
       ${CLAUDE_DECK_CMD:-claude}
-      find "$HOME/.claude/projects" -maxdepth 2 -name "*.jsonl" \
-        ! -path "*/subagents/*" -newer "$_marker" -delete 2>/dev/null
+      cd "$_old_dir"
+      python3 "$_CC_DECK_DIR/lib/quick_sessions.py" register "$_marker"
       rm -f "$_marker"
     fi
     return
@@ -274,6 +279,34 @@ cc-deck() {
       cwd="$(echo "$selected" | cut -f2)"
 
       [[ "$raw_id" == "SEP:" ]] && continue
+
+      # [Quick] entry: open quick session list
+      if [[ "$raw_id" == "QUICK:" ]]; then
+        local q_result q_key q_selected q_sid
+        q_result=$(python3 "$_CC_DECK_DIR/lib/quick_sessions.py" list \
+          | fzf --ansi --delimiter=$'\t' --with-nth=3 \
+                --height=60% --reverse \
+                --prompt="quick> " \
+                --header=$'\033[1;32m[Quick]\033[0m sessions | Enter: resume  Ctrl-R: delete  ESC: back' \
+                --expect=ctrl-r)
+        if [[ -z "$q_result" ]]; then
+          continue
+        fi
+        q_key=$(echo "$q_result" | head -1)
+        q_selected=$(echo "$q_result" | tail -1)
+        if [[ "$q_key" == "ctrl-r" && -n "$q_selected" ]]; then
+          q_sid=$(echo "$q_selected" | cut -f1)
+          python3 "$_CC_DECK_DIR/lib/quick_sessions.py" delete-by-id "$q_sid"
+          sleep 0.3
+          continue
+        fi
+        if [[ -n "$q_selected" ]]; then
+          session_id=$(echo "$q_selected" | cut -f1)
+          cwd="$_CC_DECK_QUICK_DIR"
+          break
+        fi
+        continue
+      fi
 
       # Ctrl-K: toggle pin and reopen
       if [[ "$key" == "ctrl-k" ]]; then
