@@ -130,10 +130,22 @@ function cc-deck {
         return
     }
 
-    # 'cc-deck -q/--quick <prompt>' — instant one-shot query, no session saved
+    # 'cc-deck -q/--quick [prompt]' — ephemeral query, no session kept
     if ($Subcommand -eq '-q' -or $Subcommand -eq '--quick') {
         $prompt = $args -join ' '
-        claude -p --no-session-persistence $prompt
+        if ($prompt) {
+            claude -p --no-session-persistence $prompt
+        } else {
+            # Interactive ephemeral session: start claude, delete session on exit
+            $marker = [System.IO.Path]::GetTempFileName()
+            $markerTime = (Get-Item $marker).LastWriteTime
+            $claudeCmd = if ($env:CLAUDE_DECK_CMD) { $env:CLAUDE_DECK_CMD } else { "claude" }
+            & $claudeCmd
+            Get-ChildItem "$HOME\.claude\projects" -Filter "*.jsonl" -Recurse -Depth 2 |
+                Where-Object { $_.FullName -notmatch '[\\/]subagents[\\/]' -and $_.LastWriteTime -gt $markerTime } |
+                Remove-Item -Force -ErrorAction SilentlyContinue
+            Remove-Item $marker -ErrorAction SilentlyContinue
+        }
         return
     }
 

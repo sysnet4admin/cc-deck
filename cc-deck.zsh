@@ -104,10 +104,22 @@ _cc_deck_resume() {
 # Env:
 #   CLAUDE_DECK_CMD   override default resume command (e.g. "claude-api")
 cc-deck() {
-  # 'cc-deck -q/--quick <prompt>' — instant one-shot query, no session saved
+  # 'cc-deck -q/--quick [prompt]' — ephemeral query, no session kept
   if [[ "$1" == "-q" || "$1" == "--quick" ]]; then
     shift
-    claude -p --no-session-persistence "$@"
+    if [[ -n "$*" ]]; then
+      # One-shot with argument
+      claude -p --no-session-persistence "$@"
+    else
+      # Interactive ephemeral session: start claude, delete session on exit
+      local _marker
+      _marker=$(mktemp)
+      ${=CLAUDE_DECK_CMD:-claude}
+      # Delete any session files created during this run
+      find "$HOME/.claude/projects" -maxdepth 2 -name "*.jsonl" \
+        ! -path "*/subagents/*" -newer "$_marker" -delete 2>/dev/null
+      rm -f "$_marker"
+    fi
     return
   fi
 
