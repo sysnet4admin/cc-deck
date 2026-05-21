@@ -50,6 +50,11 @@ def get_session_cwd(filepath):
     return ''
 
 
+def _is_real_content(text):
+    """Filter out system-injected messages (e.g. <local-command-caveat>)."""
+    return bool(text and text.strip() and not text.lstrip().startswith('<'))
+
+
 def get_preview(filepath):
     try:
         with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
@@ -58,13 +63,13 @@ def get_preview(filepath):
                     d = json.loads(line.strip())
                     if d.get('type') == 'user':
                         content = d.get('message', {}).get('content', '')
-                        if isinstance(content, str) and content.strip():
+                        if isinstance(content, str) and _is_real_content(content):
                             return content.split('\n')[0][:80]
                         elif isinstance(content, list):
                             for item in content:
                                 if isinstance(item, dict) and item.get('type') == 'text':
                                     text = item.get('text', '')
-                                    if text.strip():
+                                    if _is_real_content(text):
                                         return text.split('\n')[0][:80]
                 except Exception:
                     pass
@@ -74,6 +79,7 @@ def get_preview(filepath):
 
 
 def count_user_messages(filepath):
+    """Count real user messages, excluding system-injected content."""
     count = 0
     try:
         with open(filepath, 'r', encoding='utf-8', errors='replace') as f:
@@ -81,7 +87,13 @@ def count_user_messages(filepath):
                 try:
                     d = json.loads(line.strip())
                     if d.get('type') == 'user':
-                        count += 1
+                        content = d.get('message', {}).get('content', '')
+                        if isinstance(content, str) and _is_real_content(content):
+                            count += 1
+                        elif isinstance(content, list):
+                            if any(isinstance(i, dict) and _is_real_content(i.get('text', ''))
+                                   for i in content if i.get('type') == 'text'):
+                                count += 1
                 except Exception:
                     pass
     except Exception:
