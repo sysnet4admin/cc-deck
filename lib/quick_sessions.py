@@ -182,6 +182,32 @@ elif cmd == 'list':
         preview  = info.get('preview', '(no preview)')
         print(f'{sid}\t{QUICK_DIR}\t{mtime}  {preview}')
 
+# ── rescan ─────────────────────────────────────────────────────────────────────
+# Re-evaluate all existing sessions with current filter logic.
+# Removes sessions with < MIN_EXCHANGES real messages; refreshes previews.
+elif cmd == 'rescan':
+    registry = load_registry()
+    remove   = []
+    for path, info in list(registry.items()):
+        if not os.path.exists(path):
+            remove.append(path)
+            continue
+        n = count_user_messages(path)
+        if n < MIN_EXCHANGES:
+            try:
+                os.unlink(path)
+            except Exception:
+                pass
+            remove.append(path)
+        else:
+            new_preview = get_preview(path)
+            info['preview'] = new_preview
+            registry[path]  = info
+    for path in remove:
+        del registry[path]
+    save_registry(registry)
+    print(f'[cc-deck] rescan done: {len(remove)} removed, {len(registry)} kept')
+
 # ── delete-by-id ───────────────────────────────────────────────────────────────
 elif cmd == 'delete-by-id':
     sid      = sys.argv[2] if len(sys.argv) > 2 else ''
