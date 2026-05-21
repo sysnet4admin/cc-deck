@@ -317,6 +317,7 @@ cc-deck() {
 
       # Ctrl-Q: instant query (runs in shell, not fzf execute — avoids Bun TTY issue)
       if [[ "$key" == "ctrl-q" ]]; then
+        stty sane 2>/dev/null
         clear
         printf "\n  Quick query: "
         local _qq
