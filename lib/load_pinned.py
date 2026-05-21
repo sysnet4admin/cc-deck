@@ -132,14 +132,17 @@ try:
 except Exception:
     pass
 
-# 3. Quick sessions entry (shows only if any exist)
+# 3. Quick sessions entry (always shown — hints feature when empty)
 QUICK_REGISTRY = os.path.join(HOME, '.claude', '.cc-deck-quick.json')
 try:
     with open(QUICK_REGISTRY, encoding='utf-8') as f:
         qreg = json.load(f)
     count = sum(1 for p in qreg if os.path.exists(p))
-    if count > 0:
-        label = 'sessions' if count > 1 else 'session'
-        print(f'QUICK:\t-\t\033[1;32m[Quick]\033[0m ▶ {count} {label}')
 except Exception:
-    pass
+    count = 0
+
+if count > 0:
+    label = 'sessions' if count > 1 else 'session'
+    print(f'QUICK:\t-\t\033[1;32m[Quick]\033[0m ▶ {count} {label}')
+else:
+    print(f'QUICK:\t-\t\033[1;32m[Quick]\033[0m ▶ no sessions yet  (cc-deck -q)')
