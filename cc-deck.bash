@@ -278,8 +278,7 @@ cc-deck() {
           "--header=$header" \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
           "--bind=f1:execute(python3 \"$_CC_DECK_DIR/lib/show_help.py\")" \
-          "--bind=ctrl-q:execute(python3 \"$_CC_DECK_DIR/lib/quick_query.py\")" \
-          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-m)
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-q,ctrl-m)
 
       [[ -z "$result" ]] && return
 
@@ -321,6 +320,23 @@ cc-deck() {
           cwd="$_CC_DECK_QUICK_DIR"
           break
         fi
+        continue
+      fi
+
+      # Ctrl-Q: instant query (runs in shell, not fzf execute — avoids Bun TTY issue)
+      if [[ "$key" == "ctrl-q" ]]; then
+        clear
+        printf "\n  Quick query: "
+        local _qq
+        read -r _qq
+        if [[ -n "$_qq" ]]; then
+          echo ""
+          claude -p --no-session-persistence "$_qq"
+          echo ""
+          printf "  Press any key to return..."
+          read -rsn1
+        fi
+        clear
         continue
       fi
 
