@@ -21,6 +21,8 @@
 - **4가지 실행 모드** — `claude`, `claude-api`, `--dangerously-skip-permissions` 및 조합
 - **Tab 모드 순환** — Tab으로 실행 모드 순환; 현재 모드가 헤더에 표시
 - **모드 기억** — 마지막 선택한 모드가 유지
+- **빠른 질문** — `cc-deck -q`로 기록 없는 일회성 질문 또는 임시 대화 세션
+- **[Quick] 세션** — 보존된 빠른 세션이 TUI 상단에 표시; Enter로 목록 탐색 및 재개
 - **자동 업데이트** — 매일 백그라운드에서 업데이트 확인; `cc-deck update`로 수동 업데이트
 - **빠른 속도** — mtime 기반 캐시, 재실행 시 ~0.04초
 
@@ -84,6 +86,22 @@ cc-deck
 cc-deck update
 ```
 
+### 빠른 질문 (Quick query)
+
+세션 기록 없이 일회성 질문:
+
+```zsh
+cc-deck -q "kubectl apply와 replace의 차이는?"
+```
+
+또는 임시 대화 세션 (7일 후 자동 삭제):
+
+```zsh
+cc-deck -q
+```
+
+세션 브라우저 안에서 `Ctrl-Q`를 누르면 브라우저를 나가지 않고 빠른 질문을 할 수 있습니다.
+
 ### 키 바인딩
 
 | 키 | 동작 |
@@ -91,7 +109,8 @@ cc-deck update
 | `Enter` | 마지막 저장된 모드로 재개 |
 | `Tab` | 실행 모드 순환 (default → api → skip → api+skip) |
 | `Ctrl-K` | 현재 세션 고정 / 해제 |
-| `Ctrl-R` | TODO 완료 처리 / PIN 제거 |
+| `Ctrl-R` | TODO 완료 처리 / PIN 또는 Quick 세션 제거 |
+| `Ctrl-Q` | 빠른 질문 (세션 저장 없음) |
 | `Ctrl-O` | `claude`로 재개 |
 | `Ctrl-A` | `claude-api`로 재개 |
 | `Ctrl-S` | `claude --dangerously-skip-permissions`로 재개 |
@@ -102,8 +121,9 @@ cc-deck update
 ### 세션 목록
 
 ```
-[TODO] /tmp/projects/infra/k8s: 3Gi 적용 후 2주간 OOMKill 재발 여부 모니터링
-[PIN]  /tmp/projects/api-server: 배포 이후 메모리 사용량 계속 증가 — 원인 찾아줘
+[TODO]  /tmp/projects/infra/k8s: 3Gi 적용 후 2주간 OOMKill 재발 여부 모니터링
+[PIN]   /tmp/projects/api-server: 배포 이후 메모리 사용량 계속 증가 — 원인 찾아줘
+[Quick] ▶ 2 sessions
 ────────────────────────────────────────────────────────────────────────
 * 2026-05-08 09:14  /tmp/projects/api-server:    배포 이후 메모리 사용량 계속 증가
   2026-05-08 08:59  /tmp/projects/infra/k8s:    스케일 업 후 pod OOMKill 계속 남
@@ -115,6 +135,7 @@ cc-deck update
 - `*` 현재 디렉토리 표시
 - `[TODO]` — Claude 메모리에서 자동 감지 (`type: project`, `name`에 `TODO` 포함)
 - `[PIN]` — `Ctrl-K`로 수동 고정
+- `[Quick]` — 보존된 빠른 세션 (Enter로 목록 탐색)
 
 ### 기본 명령어 변경
 
@@ -135,7 +156,8 @@ cc-deck은 어떤 모드를 표시할지 자동으로 감지합니다:
 | 조건 | 표시되는 모드 |
 |---|---|
 | `ANTHROPIC_API_KEY` 또는 `ANTHROPIC_AUTH_TOKEN` 설정됨 | 4가지 모두 |
-| 둘 다 없음 | `default`, `dangerous`만 |
+| `~/.zshrc` / `~/.bashrc`에서 관련 변수 발견 | 4가지 모두 |
+| 감지 안 됨 | `default`, `dangerous`만 |
 
 LiteLLM, 커스텀 프록시 등 비표준 구성의 경우 직접 지정:
 
@@ -156,10 +178,6 @@ $env:CC_DECK_MODES = "default,api,dangerous,api-dangerous"
 ## 튜토리얼
 
 ### 1. 퍼지 검색으로 세션 찾기
-
-```
-cc-deck
-```
 
 프롬프트에 `OOM`을 입력하면 해당 내용이 포함된 세션만 실시간으로 필터링됩니다. 선택하면 원래 디렉토리로 이동 후 바로 재개됩니다.
 
@@ -208,6 +226,20 @@ name: TODO - EKS 클러스터 3Gi 메모리 제한 적용 후 모니터링
 name: EKS 클러스터 3Gi 메모리 제한 적용 후 모니터링 (completed)
 ```
 
+### 5. 빠른 질문
+
+기록이 필요 없는 짧은 질문:
+
+```zsh
+# 일회성: 답변 출력 후 세션 저장 없음
+cc-deck -q "RollingUpdate와 Recreate 차이점 설명해줘"
+
+# 대화형: 계속 질문 가능, 7일 후 자동 삭제
+cc-deck -q
+```
+
+2회 이상 대화한 `cc-deck -q` 세션은 보존되어 TUI에 `[Quick] ▶ N sessions`로 표시됩니다. Enter로 목록을 탐색하고 재개할 수 있습니다.
+
 ---
 
 ## 저장 파일
@@ -217,6 +249,8 @@ name: EKS 클러스터 3Gi 메모리 제한 적용 후 모니터링 (completed)
 | `~/.claude/.cc-deck-cache.json` | mtime 기반 세션 캐시 |
 | `~/.claude/.cc-deck-pins.json` | 수동 고정 세션 목록 |
 | `~/.claude/.cc-deck-mode` | 마지막 선택한 실행 모드 |
+| `~/.claude/.cc-deck-quick.json` | 빠른 세션 레지스트리 |
+| `~/.cc-deck-quick/` | 빠른 세션 작업 디렉토리 |
 | `~/.claude/.cc-deck-last-update` | 마지막 자동 업데이트 확인 시각 |
 | `~/.claude/.cc-deck-updated` | 업데이트 알림 전달용 센티넬 파일 |
 | `~/.claude/.cc-deck-update.lock` | 동시 업데이트 방지 잠금 파일 |

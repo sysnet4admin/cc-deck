@@ -44,9 +44,11 @@ def type_chars(text, delay=0.09):
     for c in text:
         out(c, delay)
 
-TODO_ITEM = f"{YLW}[TODO]{R} /tmp/projects/infra/k8s: Watch for OOMKill recurrence over the next 2 weeks              "
-PIN_ITEM  = f"{MAG}[PIN] {R} /tmp/projects/api-server: memory usage keeps climbing after the last deploy — find the leak"
-SEP_ITEM  = f"{GRY}────────────────────────────────────────────────────────────────────────────────────────{R}          "
+GRN2       = "\033[1;32m"
+TODO_ITEM  = f"{YLW}[TODO] {R}/tmp/projects/infra/k8s: Watch for OOMKill recurrence over the next 2 weeks              "
+PIN_ITEM   = f"{MAG}[PIN]  {R}/tmp/projects/api-server: memory usage keeps climbing — find the leak                    "
+QUICK_ITEM = f"{GRN2}[Quick]{R} ▶ 2 sessions                                                                           "
+SEP_ITEM   = f"{GRY}────────────────────────────────────────────────────────────────────────────────────────{R}         "
 
 ALL_SESSIONS = [
     f"  {GRY}2026-05-08 09:14{R}  /tmp/projects/api-server:    {WHT}memory usage keeps climbing after the last deploy{R}",
@@ -150,20 +152,31 @@ for label, color in MODES:
     pause(0.9)
 draw_fzf([TODO_ITEM] + ALL_SESSIONS, selected=0); pause(0.8)
 
-# ── SCENE 3: PIN + TODO at top ────────────────────────────────────────────────
-comment("3. TODO (auto) and PIN (manual) stay at the top", pre=1.2, post=1.2)
+# ── SCENE 3: TODO + PIN + Quick at top ───────────────────────────────────────
+comment("3. TODO, PIN, and Quick sessions pinned at top", pre=1.2, post=1.2)
 
 out(f"{GRN}~/projects/infra/k8s{R} $ ", 0.01); pause(0.4)
 type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
-draw_fzf_pinned(pinned=[TODO_ITEM, PIN_ITEM], sep=SEP_ITEM, sessions=ALL_SESSIONS, selected=1)
+draw_fzf_pinned(pinned=[TODO_ITEM, PIN_ITEM, QUICK_ITEM], sep=SEP_ITEM, sessions=ALL_SESSIONS, selected=2)
 pause(1.2)
 
 out("\033[2J\033[H", 0.01)
 out(f"{GRN}~/projects/infra/k8s{R} $ cc-deck\r\ncd /tmp/projects/api-server\r\n", 0.04)
 pause(0.3)
 out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R} — resuming session\r\n{GRY}✓{R} memory usage keeps climbing...\r\n", 0.03)
+pause(1.0)
+
+# ── SCENE 4: cc-deck -q quick query ──────────────────────────────────────────
+comment("4. cc-deck -q — instant query, no session history", pre=1.2, post=1.2)
+
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.4)
+type_chars('cc-deck -q "what does SIGTERM do?"', 0.07)
+pause(0.3); out("\r\n", 0.05); pause(0.8)
+out(f"SIGTERM asks a process to terminate gracefully.\r\n", 0.02)
+out(f"Unlike SIGKILL, the process can catch and handle it.\r\n", 0.02)
+pause(1.5)
 nl()
-out(f"{GRN}~/projects/api-server{R} $ ", 0.04); pause(0.4)
+out(f"{GRN}~/projects{R} $ ", 0.04); pause(0.4)
 out(f"{GRY}│{R}", 0.04); pause(2.0)
 
 # ── Output ────────────────────────────────────────────────────────────────────
