@@ -140,6 +140,6 @@ try:
     count = sum(1 for p in qreg if os.path.exists(p))
     if count > 0:
         label = 'sessions' if count > 1 else 'session'
-        print(f'QUICK:\t\t\033[1;32m[Quick]\033[0m ▶ {count} {label}')
+        print(f'QUICK:\t-\t\033[1;32m[Quick]\033[0m ▶ {count} {label}')
 except Exception:
     pass
