@@ -20,11 +20,17 @@ def run(args, timeout=10):
 
 
 def get_version(sha, install_dir):
-    """Return tag name for the given commit, or short SHA as fallback."""
+    """Return tag name for the given commit, or nearest ancestor tag as fallback."""
     try:
         r = run(['git', '-C', install_dir, 'describe', '--tags', '--exact-match', sha])
         if r.returncode == 0 and r.stdout.strip():
             return r.stdout.strip()
+    except Exception:
+        pass
+    try:
+        r = run(['git', '-C', install_dir, 'describe', '--tags', '--abbrev=0', sha])
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip() + '+'
     except Exception:
         pass
     return sha[:7]
