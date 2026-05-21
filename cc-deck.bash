@@ -327,9 +327,9 @@ cc-deck() {
       if [[ "$key" == "ctrl-q" ]]; then
         stty sane 2>/dev/null
         clear
-        printf "\n  Quick query: "
-        local _qq
-        read -r _qq
+        echo ""
+        local _qq=""
+        read -e -p "  Quick query: " _qq
         if [[ -n "$_qq" ]]; then
           echo ""
           claude -p --no-session-persistence "$_qq"
