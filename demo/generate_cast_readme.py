@@ -176,7 +176,21 @@ out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.8)
 comment("→ [Quick] appears in cc-deck", pre=0.3, post=0.6)
 type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
 draw_fzf_pinned(pinned=[TODO_ITEM, PIN_ITEM, QUICK_ITEM], sep=SEP_ITEM, sessions=ALL_SESSIONS, selected=2)
-pause(2.0)
+pause(1.2)
+
+# Enter → Quick session list → resume
+out("\033[2J\033[H", 0.01)
+out(f"  {GRN}quick>{R} \033[?25l", 0.01); nl()
+out(f"{GRY}[Quick] sessions | Enter: resume  Ctrl-R: delete  ESC: back{R}", 0.01); nl()
+out(f"{GRY}  1/1{R}", 0.01); nl()
+out(f"{REV}> {GRY}2026-05-22 10:30{R}  {WHT}what does SIGTERM do?{R}          ", 0.01); nl()
+pause(1.2)
+out("\033[2J\033[H", 0.01)
+out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R} — resuming session\r\n", 0.03)
+out(f"{GRY}✓{R} what does SIGTERM do?\r\n", 0.03)
+nl()
+out(f"{GRN}~/.cc-deck-quick{R} $ ", 0.04); pause(0.4)
+out(f"{GRY}│{R}", 0.04); pause(2.0)
 
 # ── Output ────────────────────────────────────────────────────────────────────
 header = {

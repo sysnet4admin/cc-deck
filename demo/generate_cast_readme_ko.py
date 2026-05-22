@@ -176,7 +176,21 @@ out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.8)
 comment("→ cc-deck에서 [Quick] 확인", pre=0.3, post=0.6)
 type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
 draw_fzf_pinned(pinned=[TODO_ITEM, PIN_ITEM, QUICK_ITEM], sep=SEP_ITEM, sessions=ALL_SESSIONS, selected=2)
-pause(2.0)
+pause(1.2)
+
+# Enter → Quick 목록 → 재개
+out("\033[2J\033[H", 0.01)
+out(f"  {GRN}quick>{R} \033[?25l", 0.01); nl()
+out(f"{GRY}[Quick] sessions | Enter: resume  Ctrl-R: delete  ESC: back{R}", 0.01); nl()
+out(f"{GRY}  1/1{R}", 0.01); nl()
+out(f"{REV}> {GRY}2026-05-22 10:30{R}  {WHT}SIGTERM이 뭐야?{R}                    ", 0.01); nl()
+pause(1.2)
+out("\033[2J\033[H", 0.01)
+out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R} — 세션 재개\r\n", 0.03)
+out(f"{GRY}✓{R} SIGTERM이 뭐야?\r\n", 0.03)
+nl()
+out(f"{GRN}~/.cc-deck-quick{R} $ ", 0.04); pause(0.4)
+out(f"{GRY}│{R}", 0.04); pause(2.0)
 
 # ── Output ────────────────────────────────────────────────────────────────────
 header = {
