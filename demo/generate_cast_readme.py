@@ -152,32 +152,31 @@ for label, color in MODES:
     pause(0.9)
 draw_fzf([TODO_ITEM] + ALL_SESSIONS, selected=0); pause(0.8)
 
-# ── SCENE 3: TODO + PIN + Quick at top ───────────────────────────────────────
-comment("3. TODO, PIN, and Quick sessions pinned at top", pre=1.2, post=1.2)
+# ── SCENE 3: cc-deck -q → 2+ exchanges → [Quick] appears ─────────────────────
+comment("3. cc-deck -q — preserved after 2+ exchanges", pre=1.2, post=0.8)
 
-out(f"{GRN}~/projects/infra/k8s{R} $ ", 0.01); pause(0.4)
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.3)
+type_chars("cc-deck -q"); pause(0.3); out("\r\n", 0.05); pause(0.4)
+out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R}\r\n", 0.02)
+
+out(f"{GRY}╭─{R} User\r\n{GRY}│{R}  ", 0.01)
+type_chars("what does SIGTERM do?", 0.06)
+out(f"\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+out(f"{GRY}╭─{R} Claude\r\n{GRY}│{R}  SIGTERM asks a process to terminate gracefully.\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+
+out(f"{GRY}╭─{R} User\r\n{GRY}│{R}  ", 0.01)
+type_chars("and SIGKILL?", 0.06)
+out(f"\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+out(f"{GRY}╭─{R} Claude\r\n{GRY}│{R}  SIGKILL forces termination — cannot be caught.\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+
+out(f"\r\n{GRY}❯ /quit{R}\r\n", 0.03); pause(0.6)
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.8)
+
+# [Quick] appears
+comment("→ [Quick] appears in cc-deck", pre=0.3, post=0.6)
 type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
 draw_fzf_pinned(pinned=[TODO_ITEM, PIN_ITEM, QUICK_ITEM], sep=SEP_ITEM, sessions=ALL_SESSIONS, selected=2)
-pause(1.2)
-
-out("\033[2J\033[H", 0.01)
-out(f"{GRN}~/projects/infra/k8s{R} $ cc-deck\r\ncd /tmp/projects/api-server\r\n", 0.04)
-pause(0.3)
-out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R} — resuming session\r\n{GRY}✓{R} memory usage keeps climbing...\r\n", 0.03)
-pause(1.0)
-
-# ── SCENE 4: cc-deck -q quick query ──────────────────────────────────────────
-comment("4. cc-deck -q — instant query, no session history", pre=1.2, post=1.2)
-
-out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.4)
-type_chars('cc-deck -q "what does SIGTERM do?"', 0.07)
-pause(0.3); out("\r\n", 0.05); pause(0.8)
-out(f"SIGTERM asks a process to terminate gracefully.\r\n", 0.02)
-out(f"Unlike SIGKILL, the process can catch and handle it.\r\n", 0.02)
-pause(1.5)
-nl()
-out(f"{GRN}~/projects{R} $ ", 0.04); pause(0.4)
-out(f"{GRY}│{R}", 0.04); pause(2.0)
+pause(2.0)
 
 # ── Output ────────────────────────────────────────────────────────────────────
 header = {

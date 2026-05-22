@@ -211,16 +211,43 @@ out(f"{GRN}~/projects/infra/k8s{R} $ cc-deck\r\n", 0.01)
 out(f"{MAG}[cc-deck]{R} pinned: /tmp/projects/api-server — memory usage keeps climbing...\r\n", 0.04)
 pause(1.0)
 
-# ── SCENE 4: TODO + PIN + Quick at top ───────────────────────────────────────
-comment("4. TODO (auto), PIN (manual), and Quick sessions at the top",
-        pre=1.5, post=1.5)
+# ── SCENE 4: cc-deck -q → 2+ exchanges → [Quick] appears ─────────────────────
+comment("4. cc-deck -q — ephemeral session, preserved after 2+ exchanges",
+        pre=1.5, post=1.2)
 
-out(f"{GRN}~/projects/infra/k8s{R} $ ", 0.01)
+out(f"{GRN}~/projects{R} $ ", 0.01)
 pause(0.4)
-type_chars("cc-deck")
+type_chars("cc-deck -q")
 pause(0.3)
 out("\r\n", 0.05)
-pause(0.2)
+pause(0.4)
+out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R}\r\n", 0.02)
+
+# exchange 1
+out(f"{GRY}╭─{R} User\r\n{GRY}│{R}  ", 0.01)
+type_chars("what does SIGTERM do?", 0.06)
+out(f"\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.5)
+out(f"{GRY}╭─{R} Claude\r\n", 0.02)
+out(f"{GRY}│{R}  SIGTERM asks a process to terminate gracefully.\r\n", 0.02)
+out(f"{GRY}│{R}  Unlike SIGKILL, the process can catch and handle it.\r\n", 0.02)
+out(f"{GRY}╰─{R}\r\n", 0.02); pause(0.5)
+
+# exchange 2
+out(f"{GRY}╭─{R} User\r\n{GRY}│{R}  ", 0.01)
+type_chars("and SIGKILL?", 0.06)
+out(f"\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.5)
+out(f"{GRY}╭─{R} Claude\r\n", 0.02)
+out(f"{GRY}│{R}  SIGKILL immediately forces termination — cannot be caught or ignored.\r\n", 0.02)
+out(f"{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+
+out(f"\r\n{GRY}❯ /quit{R}\r\n", 0.03); pause(0.6)
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(1.0)
+
+# Now show [Quick] entry appearing in cc-deck TUI
+comment("→ session preserved — [Quick] appears in cc-deck",
+        pre=0.5, post=0.8)
+
+type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
 
 draw_fzf_pinned(
     pinned=[TODO_ITEM, PIN_ITEM, QUICK_ITEM],
@@ -228,34 +255,6 @@ draw_fzf_pinned(
     sessions=ALL_SESSIONS,
     selected=2,
 )
-pause(1.2)
-
-out("\033[2J\033[H", 0.01)
-out(f"{GRN}~/projects/infra/k8s{R} $ cc-deck\r\n", 0.01)
-out(f"cd /tmp/projects/api-server\r\n", 0.04)
-pause(0.3)
-out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R} — resuming session\r\n", 0.03)
-out(f"{GRY}✓{R} memory usage keeps climbing after the last deploy...\r\n", 0.03)
-pause(1.0)
-
-# ── SCENE 5: cc-deck -q quick query ──────────────────────────────────────────
-comment("5. cc-deck -q — instant query, no session history saved",
-        pre=1.2, post=1.2)
-
-out(f"{GRN}~/projects/infra/k8s{R} $ ", 0.01)
-pause(0.4)
-type_chars('cc-deck -q "what does SIGTERM do?"', 0.07)
-pause(0.3)
-out("\r\n", 0.05)
-pause(0.8)
-out(f"SIGTERM (signal 15) asks a process to terminate gracefully.\r\n", 0.02)
-out(f"The process can catch it, clean up resources, and exit on its own terms.\r\n", 0.02)
-out(f"Unlike SIGKILL (9), it can be handled or ignored by the process.\r\n", 0.02)
-pause(1.5)
-nl()
-out(f"{GRN}~/projects/infra/k8s{R} $ ", 0.04)
-pause(0.4)
-out(f"{GRY}│{R}", 0.04)
 pause(2.0)
 
 # ── Output ────────────────────────────────────────────────────────────────────

@@ -152,32 +152,31 @@ for label, color in MODES:
     pause(0.9)
 draw_fzf([TODO_ITEM] + ALL_SESSIONS, selected=0); pause(0.8)
 
-# ── SCENE 3: TODO + PIN + Quick 상단 고정 ────────────────────────────────────
-comment("3. TODO + PIN + Quick 세션 모두 상단 고정", pre=1.2, post=1.2)
+# ── SCENE 3: cc-deck -q → 2회 이상 대화 → [Quick] 등장 ──────────────────────
+comment("3. cc-deck -q — 2회 이상 대화하면 [Quick]에 보존", pre=1.2, post=0.8)
 
-out(f"{GRN}~/projects/infra/k8s{R} $ ", 0.01); pause(0.4)
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.3)
+type_chars("cc-deck -q"); pause(0.3); out("\r\n", 0.05); pause(0.4)
+out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R}\r\n", 0.02)
+
+out(f"{GRY}╭─{R} User\r\n{GRY}│{R}  ", 0.01)
+type_chars("SIGTERM이 뭐야?", 0.06)
+out(f"\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+out(f"{GRY}╭─{R} Claude\r\n{GRY}│{R}  SIGTERM은 프로세스에 정상 종료를 요청하는 신호입니다.\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+
+out(f"{GRY}╭─{R} User\r\n{GRY}│{R}  ", 0.01)
+type_chars("SIGKILL은?", 0.06)
+out(f"\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+out(f"{GRY}╭─{R} Claude\r\n{GRY}│{R}  SIGKILL은 즉시 강제 종료 — 처리하거나 무시할 수 없습니다.\r\n{GRY}╰─{R}\r\n", 0.02); pause(0.4)
+
+out(f"\r\n{GRY}❯ /quit{R}\r\n", 0.03); pause(0.6)
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.8)
+
+# [Quick] 등장
+comment("→ cc-deck에서 [Quick] 확인", pre=0.3, post=0.6)
 type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
 draw_fzf_pinned(pinned=[TODO_ITEM, PIN_ITEM, QUICK_ITEM], sep=SEP_ITEM, sessions=ALL_SESSIONS, selected=2)
-pause(1.2)
-
-out("\033[2J\033[H", 0.01)
-out(f"{GRN}~/projects/infra/k8s{R} $ cc-deck\r\ncd /tmp/projects/api-server\r\n", 0.04)
-pause(0.3)
-out(f"{GRY}Claude Code{R} {GRN}v2.1.128{R} — 세션 재개\r\n{GRY}✓{R} 배포 이후 메모리 사용량 계속 증가...\r\n", 0.03)
-pause(1.0)
-
-# ── SCENE 4: cc-deck -q 빠른 질문 ────────────────────────────────────────────
-comment("4. cc-deck -q — 세션 기록 없이 즉시 질문", pre=1.2, post=1.2)
-
-out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.4)
-type_chars('cc-deck -q "SIGTERM이 뭐야?"', 0.07)
-pause(0.3); out("\r\n", 0.05); pause(0.8)
-out(f"SIGTERM(15)은 프로세스에 정상 종료를 요청하는 신호입니다.\r\n", 0.02)
-out(f"SIGKILL과 달리 프로세스가 처리하거나 무시할 수 있습니다.\r\n", 0.02)
-pause(1.5)
-nl()
-out(f"{GRN}~/projects{R} $ ", 0.04); pause(0.4)
-out(f"{GRY}│{R}", 0.04); pause(2.0)
+pause(2.0)
 
 # ── Output ────────────────────────────────────────────────────────────────────
 header = {
