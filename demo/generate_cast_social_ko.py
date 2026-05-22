@@ -47,7 +47,7 @@ def type_chars(text, delay=0.09):
 GRN2       = "\033[1;32m"
 TODO_ITEM  = f"{YLW}[TODO] {R}/tmp/projects/infra/k8s: 3Gi 적용 후 2주간 OOMKill 재발 여부 모니터링                    "
 PIN_ITEM   = f"{MAG}[PIN]  {R}/tmp/projects/api-server: 배포 이후 메모리 사용량 계속 증가 — 원인 찾아줘               "
-QUICK_ITEM = f"{GRN2}[Quick]{R} ▶ 2 sessions                                                                           "
+QUICK_ITEM = f"{GRN2}[Quick]{R} ▶ 1 session                                                                           "
 SEP_ITEM   = f"{GRY}────────────────────────────────────────────────────────────────────────────────────────{R}         "
 
 ALL_SESSIONS = [

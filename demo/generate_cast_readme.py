@@ -47,7 +47,7 @@ def type_chars(text, delay=0.09):
 GRN2       = "\033[1;32m"
 TODO_ITEM  = f"{YLW}[TODO] {R}/tmp/projects/infra/k8s: Watch for OOMKill recurrence over the next 2 weeks              "
 PIN_ITEM   = f"{MAG}[PIN]  {R}/tmp/projects/api-server: memory usage keeps climbing — find the leak                    "
-QUICK_ITEM = f"{GRN2}[Quick]{R} ▶ 2 sessions                                                                           "
+QUICK_ITEM = f"{GRN2}[Quick]{R} ▶ 1 session                                                                           "
 SEP_ITEM   = f"{GRY}────────────────────────────────────────────────────────────────────────────────────────{R}         "
 
 ALL_SESSIONS = [
