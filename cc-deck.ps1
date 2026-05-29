@@ -32,7 +32,42 @@ function _cc_deck_extract_all {
     $Files | & $global:_CC_DECK.Python "$($global:_CC_DECK.Dir)\lib\extract_all.py"
 }
 
+# Snapshot pruning (lossless: drops old file-history-snapshot entries)
+function _cc_deck_prune {
+    & $global:_CC_DECK.Python "$($global:_CC_DECK.Dir)\lib\prune_snapshots.py" @args
+}
+
+# Tail-resume (lossy: keep recent turns, gzip-archive the full session)
+function _cc_deck_tail {
+    & $global:_CC_DECK.Python "$($global:_CC_DECK.Dir)\lib\tail_resume.py" @args
+}
+
+# Build session entries: session_id<TAB>cwd<TAB>display_line
+# Oversized sessions are surfaced separately via load_pinned ([S_L]/[S_XL]
+# group), so regular rows carry no size marker.
+function _cc_deck_build_sessions {
+    param($Files, $CurrentDir)
+    $ESC = [char]0x1B
+    $list = [System.Collections.Generic.List[string]]::new()
+    foreach ($line in (_cc_deck_extract_all $Files)) {
+        $parts = $line -split "`t", 4
+        if ($parts.Count -lt 3) { continue }
+        $filepath = $parts[0]; $cwd = $parts[1]; $preview = $parts[2]
+        $sessionId = [System.IO.Path]::GetFileNameWithoutExtension($filepath)
+        try { $mtime = (Get-Item $filepath -ErrorAction Stop).LastWriteTime.ToString('yyyy-MM-dd HH:mm') }
+        catch { continue }
+        $shortCwd = if ($cwd -and $cwd.StartsWith($HOME, [System.StringComparison]::OrdinalIgnoreCase)) {
+            '~' + $cwd.Substring($HOME.Length)
+        } elseif ($cwd) { $cwd } else { '?' }
+        $marker = if ($cwd -eq $CurrentDir) { "${ESC}[32m*${ESC}[0m " } else { "  " }
+        $previewText = if ($preview) { $preview } else { "(no preview)" }
+        $list.Add("${sessionId}`t${cwd}`t${marker}${mtime}  ${shortCwd}: ${previewText}")
+    }
+    return $list
+}
+
 function _cc_deck_load_pinned {
+    $env:COLUMNS = [string][Console]::WindowWidth   # full-width "manage" separator
     & $global:_CC_DECK.Python "$($global:_CC_DECK.Dir)\lib\load_pinned.py" $global:_CC_DECK.PinsFile
 }
 
@@ -249,29 +284,21 @@ function cc-deck {
             return
         }
 
-        # Build session entries: session_id<TAB>cwd<TAB>display_line
-        $sessionEntries = [System.Collections.Generic.List[string]]::new()
-        $extracted = _cc_deck_extract_all $files
-        foreach ($line in $extracted) {
-            $parts = $line -split "`t", 3
-            if ($parts.Count -lt 3) { continue }
-            $filepath  = $parts[0]
-            $cwd       = $parts[1]
-            $preview   = $parts[2]
-
-            $sessionId = [System.IO.Path]::GetFileNameWithoutExtension($filepath)
-            try { $mtime = (Get-Item $filepath -ErrorAction Stop).LastWriteTime.ToString('yyyy-MM-dd HH:mm') }
-            catch { continue }
-
-            $shortCwd = if ($cwd -and $cwd.StartsWith($HOME, [System.StringComparison]::OrdinalIgnoreCase)) {
-                '~' + $cwd.Substring($HOME.Length)
-            } elseif ($cwd) { $cwd } else { '?' }
-
-            $ESC    = [char]0x1B
-            $marker = if ($cwd -eq $currentDir) { "${ESC}[32m*${ESC}[0m " } else { "  " }
-            $previewText = if ($preview) { $preview } else { "(no preview)" }
-            $sessionEntries.Add("${sessionId}`t${cwd}`t${marker}${mtime}  ${shortCwd}: ${previewText}")
+        # Auto snapshot-prune: losslessly shrink oversized sessions before listing.
+        # Scans ALL sessions (not just the recent 100 shown) — bloated files are
+        # usually old/unlisted. Conversation lines and original mtime are preserved.
+        if (-not $env:CC_DECK_DISABLE_AUTOPRUNE) {
+            $keepN = if ($env:CC_DECK_SNAPSHOT_KEEP) { $env:CC_DECK_SNAPSHOT_KEEP } else { 3 }
+            $critMb = if ($env:CC_DECK_SIZE_CRIT_MB) { $env:CC_DECK_SIZE_CRIT_MB } else { 100 }
+            # Pass the projects dir as a single --root argument; Python walks it.
+            # Avoids PowerShell→native stdin piping and command-line length limits.
+            _cc_deck_prune scan-prune --root $projectsDir --keep $keepN --threshold-mb $critMb
         }
+
+        # Entries rebuilt after a Ctrl-G prune (oversized sessions surfaced via
+        # load_pinned's [S_L]/[S_XL] group, so regular rows carry no marker).
+        $sessionEntries = _cc_deck_build_sessions $files $currentDir
+        $sessDirty = $false
 
         if ($sessionEntries.Count -eq 0) {
             Write-Host "[cc-deck] no sessions found"
@@ -297,6 +324,12 @@ function cc-deck {
                     $m = _cc_deck_load_mode
                     if ($availableModes -notcontains $m) { $m = $availableModes[0]; _cc_deck_save_mode $m }
                     $m
+                }
+
+                # Rebuild session entries when dirty (after a Ctrl-G prune)
+                if ($sessDirty) {
+                    $sessionEntries = _cc_deck_build_sessions $files $currentDir
+                    $sessDirty = $false
                 }
 
                 # Rebuild pinned entries (reflects state changes from Ctrl-K)
@@ -326,7 +359,7 @@ function cc-deck {
                     "api-dangerous" { "claude-api+skip" }
                     default         { $defaultCmd }
                 }
-                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  ^Q: ask  Tab: cycle  F1: help  ESC: quit | ${modeColor}[${modeLabel}]${ESC}[0m"
+                $header = "${ESC}[1;33m[TODO]${ESC}[0m=auto-pinned  ${ESC}[1;35m[PIN]${ESC}[0m=manual | ^K: pin  ^R: rm  ^Q: ask  ^G: prune  ^E: trim  Tab: cycle  F1: help | ${modeColor}[${modeLabel}]${ESC}[0m"
 
                 $result = $allEntries | fzf `
                     --ansi `
@@ -338,14 +371,14 @@ function cc-deck {
                     "--header=$header" `
                     "--bind=tab:transform:%_CC_DECK_PY% %_CC_DECK_CYCLE%" `
                     "--bind=ctrl-q:execute(%_CC_DECK_PY% %_CC_DECK_QUICK%)" `
-                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,f1,ctrl-m
+                    --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-g,ctrl-e,f1,ctrl-m
 
                 if (-not $result) { return }
 
                 # fzf --expect: first line=key (empty=Enter), second line=selected item.
                 # PowerShell sometimes drops the empty first line on Enter, so detect by content.
                 $resultArr = @($result)
-                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','f1','ctrl-m')
+                $knownKeys = @('ctrl-o','ctrl-a','ctrl-s','ctrl-x','ctrl-k','ctrl-r','ctrl-g','ctrl-e','f1','ctrl-m')
                 if ($resultArr.Count -ge 2 -and ($resultArr[0] -in $knownKeys -or $resultArr[0] -eq '')) {
                     $key      = $resultArr[0]
                     $selected = $resultArr[1]
@@ -368,6 +401,55 @@ function cc-deck {
                 $cwd   = if ($parts.Count -gt 1) { $parts[1] } else { "" }
 
                 if ($rawId -eq "SEP:") { continue }
+
+                # Ctrl-G: prune old snapshots on the selected session (lossless, silent).
+                # Works on TODO/PIN/large rows too (strip prefix → underlying session).
+                # No output — the refreshed size in the manage group is the feedback.
+                if ($key -eq "ctrl-g") {
+                    $gid = $null
+                    if ($rawId -like "QUICK:*" -or $rawId -eq "SEP:") { }
+                    elseif ($rawId -like "TODO:*") { $gid = $rawId -replace '^TODO:', '' }
+                    elseif ($rawId -like "PIN:*")  { $gid = $rawId -replace '^PIN:', '' }
+                    else                           { $gid = $rawId }
+                    if ($gid) {
+                        $fp = Get-ChildItem -Path $projectsDir -Filter "$gid.jsonl" -Recurse -Depth 2 -ErrorAction SilentlyContinue |
+                            Where-Object { $_.FullName -notmatch '[\\/]subagents[\\/]' } |
+                            Select-Object -First 1 -ExpandProperty FullName
+                        if ($fp) {
+                            $keepN = if ($env:CC_DECK_SNAPSHOT_KEEP) { $env:CC_DECK_SNAPSHOT_KEEP } else { 3 }
+                            _cc_deck_prune prune $fp --keep $keepN | Out-Null
+                            $sessDirty = $true
+                        }
+                    }
+                    continue
+                }
+
+                # Ctrl-E: tail-resume — trim to recent turns (LOSSY; archives full first)
+                if ($key -eq "ctrl-e") {
+                    $tid = $null
+                    if ($rawId -like "QUICK:*" -or $rawId -eq "SEP:") { }
+                    elseif ($rawId -like "TODO:*") { $tid = $rawId -replace '^TODO:', '' }
+                    elseif ($rawId -like "PIN:*")  { $tid = $rawId -replace '^PIN:', '' }
+                    else                           { $tid = $rawId }
+                    if ($tid) {
+                        $tfp = Get-ChildItem -Path $projectsDir -Filter "$tid.jsonl" -Recurse -Depth 2 -ErrorAction SilentlyContinue |
+                            Where-Object { $_.FullName -notmatch '[\\/]subagents[\\/]' } |
+                            Select-Object -First 1 -ExpandProperty FullName
+                        if ($tfp) {
+                            [Console]::Clear()
+                            $keepT = if ($env:CC_DECK_TAIL_KEEP) { $env:CC_DECK_TAIL_KEEP } else { 10 }
+                            _cc_deck_tail dry-run $tfp --keep-turns $keepT
+                            Write-Host ""
+                            $ans = Read-Host "  Trim to recent turns? Full session is gzip-archived first. [y/N]"
+                            if ($ans -eq 'y' -or $ans -eq 'Y') {
+                                _cc_deck_tail trim $tfp --keep-turns $keepT | Out-Null
+                                $sessDirty = $true
+                            }
+                        }
+                    }
+                    [Console]::Clear()
+                    continue
+                }
 
                 # Ctrl-K: toggle pin and reopen fzf
                 if ($key -eq "ctrl-k") {

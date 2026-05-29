@@ -28,13 +28,24 @@ else
 fi
 
 # ── Session file bulk parsing (with mtime cache) ───────────────────────────────
+# Output: filepath\tcwd\tpreview\tsize
 _cc_deck_extract_all() {
   python3 "$_CC_DECK_DIR/lib/extract_all.py" "$@"
 }
 
+# ── Snapshot pruning (lossless: drops old file-history-snapshot entries) ────────
+_cc_deck_prune() {
+  python3 "$_CC_DECK_DIR/lib/prune_snapshots.py" "$@"
+}
+
+# ── Tail-resume (lossy: keep recent turns, gzip-archive the full session) ───────
+_cc_deck_tail() {
+  python3 "$_CC_DECK_DIR/lib/tail_resume.py" "$@"
+}
+
 # ── Load pinned entries ────────────────────────────────────────────────────────
 _cc_deck_load_pinned() {
-  python3 "$_CC_DECK_DIR/lib/load_pinned.py" "$_cc_deck_pins_file"
+  COLUMNS="${COLUMNS:-80}" python3 "$_CC_DECK_DIR/lib/load_pinned.py" "$_cc_deck_pins_file"
 }
 
 # ── Manual pin toggle ──────────────────────────────────────────────────────────
@@ -202,23 +213,21 @@ cc-deck() {
     return
   fi
 
-  # Build session entries: session_id<TAB>cwd<TAB>display_line
-  local session_entries=()
-  while IFS=$'\t' read -r filepath cwd preview; do
-    local session_id
-    session_id="$(basename "$filepath" .jsonl)"
-    local mtime
-    mtime="$(_cc_deck_stat_mtime "$filepath")"
-    local short_cwd="${cwd/#$HOME/~}"
-    local marker="  "
-    [[ "$cwd" == "$current_dir" ]] && marker=$'\033[32m*\033[0m '
-    session_entries+=("${session_id}	${cwd}	${marker}${mtime}  ${short_cwd}: ${preview:-(no preview)}")
-  done < <(_cc_deck_extract_all "${files[@]}")
-
-  if [[ ${#session_entries[@]} -eq 0 ]]; then
-    echo "[cc-deck] no sessions found"
-    return
+  # Auto snapshot-prune: losslessly shrink oversized sessions before listing.
+  # Scans ALL sessions (not just the recent 100 shown) — bloated files are
+  # usually old/unlisted. Conversation lines and original mtime are preserved.
+  if [[ -z "$CC_DECK_DISABLE_AUTOPRUNE" ]]; then
+    _cc_deck_prune scan-prune --root "$HOME/.claude/projects" \
+      --keep "${CC_DECK_SNAPSHOT_KEEP:-3}" \
+      --threshold-mb "${CC_DECK_SIZE_CRIT_MB:-100}"
   fi
+
+  # Session entries are (re)built lazily — once up front and again after a
+  # Ctrl-G prune, so the list reflects the new state. Oversized sessions are
+  # surfaced separately via load_pinned ([S_L]/[S_XL] group), so regular rows
+  # carry no size marker.
+  local session_entries=()
+  local _sess_dirty=1
 
   # Resolve saved/default mode; reset if saved mode is no longer available
   local saved_mode
@@ -234,6 +243,8 @@ cc-deck() {
   local mode="$saved_mode"
 
   local session_id cwd
+  local _sepline
+  _sepline=$(printf '─%.0s' $(seq 1 $(( ${COLUMNS:-80} - 4 ))))
 
   if command -v fzf &>/dev/null; then
     while true; do
@@ -243,6 +254,26 @@ cc-deck() {
       else
         mode="$(_cc_deck_load_mode)"
       fi
+
+      # (Re)build session entries when dirty (first run or after a prune)
+      if (( _sess_dirty )); then
+        session_entries=()
+        local _f _c _p _sz _sid _mt _scwd _mk
+        while IFS=$'\t' read -r _f _c _p _sz; do
+          _sid="$(basename "$_f" .jsonl)"
+          _mt="$(_cc_deck_stat_mtime "$_f")"
+          _scwd="${_c/#$HOME/~}"
+          _mk="  "
+          [[ "$_c" == "$current_dir" ]] && _mk=$'\033[32m*\033[0m '
+          session_entries+=("${_sid}	${_c}	${_mk}${_mt}  ${_scwd}: ${_p:-(no preview)}")
+        done < <(_cc_deck_extract_all "${files[@]}")
+        if [[ ${#session_entries[@]} -eq 0 ]]; then
+          echo "[cc-deck] no sessions found"
+          return
+        fi
+        _sess_dirty=0
+      fi
+
       # Rebuild pinned entries each loop
       local pinned_entries=()
       while IFS=$'\t' read -r raw_id cwd_p display; do
@@ -252,7 +283,7 @@ cc-deck() {
       local all_entries=()
       if [[ ${#pinned_entries[@]} -gt 0 ]]; then
         for e in "${pinned_entries[@]}"; do all_entries+=("$e"); done
-        all_entries+=("SEP:		────────────────────────────────────────────────────")
+        all_entries+=("SEP:		${_sepline}")
       fi
       for e in "${session_entries[@]}"; do all_entries+=("$e"); done
 
@@ -264,7 +295,7 @@ cc-deck() {
         api-dangerous) mcolor="${E}[1;36m"; mlabel="claude-api+skip" ;;
         *)             mcolor="${E}[1;38;2;217;119;87m"; mlabel="$default_cmd" ;;
       esac
-      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  ^Q: ask  Tab: cycle  F1: help  ESC: quit | ${mcolor}[${mlabel}]${E}[0m"
+      local header="${E}[1;33m[TODO]${E}[0m=auto-pinned  ${E}[1;35m[PIN]${E}[0m=manual | ^K: pin  ^R: rm  ^Q: ask  ^G: prune  ^E: trim  Tab: cycle  F1: help | ${mcolor}[${mlabel}]${E}[0m"
 
       local result
       result=$(printf '%s\n' "${all_entries[@]}" \
@@ -278,7 +309,7 @@ cc-deck() {
           "--header=$header" \
           "--bind=tab:transform:python3 \"$_CC_DECK_DIR/lib/cycle_mode.py\"" \
           "--bind=f1:execute(python3 \"$_CC_DECK_DIR/lib/show_help.py\")" \
-          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-q,ctrl-m)
+          --expect=ctrl-o,ctrl-a,ctrl-s,ctrl-x,ctrl-k,ctrl-r,ctrl-q,ctrl-g,ctrl-e,ctrl-m)
 
       [[ -z "$result" ]] && return
 
@@ -336,6 +367,56 @@ cc-deck() {
           echo ""
           printf "  Press any key to return..."
           read -rsn1
+        fi
+        clear
+        continue
+      fi
+
+      # Ctrl-G: prune old snapshots on the selected session (lossless, silent).
+      # Works on TODO/PIN/large rows too (strip prefix → underlying session).
+      # No output — the refreshed size in the manage group is the feedback.
+      if [[ "$key" == "ctrl-g" ]]; then
+        local _gid=""
+        case "$raw_id" in
+          QUICK:*|SEP:) ;;  # not a single prunable session
+          TODO:*) _gid="${raw_id#TODO:}" ;;
+          PIN:*)  _gid="${raw_id#PIN:}" ;;
+          *)      _gid="$raw_id" ;;
+        esac
+        if [[ -n "$_gid" ]]; then
+          local _fp
+          _fp=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${_gid}.jsonl" \
+            ! -path "*/subagents/*" 2>/dev/null | head -1)
+          [[ -n "$_fp" ]] && _cc_deck_prune prune "$_fp" --keep "${CC_DECK_SNAPSHOT_KEEP:-3}" >/dev/null 2>&1 && _sess_dirty=1
+        fi
+        continue
+      fi
+
+      # Ctrl-E: tail-resume — trim to recent turns (LOSSY; archives full first).
+      # Works on TODO/PIN/large rows too (strip prefix → underlying session).
+      if [[ "$key" == "ctrl-e" ]]; then
+        local _tid=""
+        case "$raw_id" in
+          QUICK:*|SEP:) ;;
+          TODO:*) _tid="${raw_id#TODO:}" ;;
+          PIN:*)  _tid="${raw_id#PIN:}" ;;
+          *)      _tid="$raw_id" ;;
+        esac
+        if [[ -n "$_tid" ]]; then
+          local _tfp
+          _tfp=$(find "$HOME/.claude/projects" -maxdepth 2 -name "${_tid}.jsonl" \
+            ! -path "*/subagents/*" 2>/dev/null | head -1)
+          if [[ -n "$_tfp" ]]; then
+            stty sane 2>/dev/null; clear; echo ""
+            _cc_deck_tail dry-run "$_tfp" --keep-turns "${CC_DECK_TAIL_KEEP:-10}"
+            echo ""
+            local _ans=""
+            read -e -p "  Trim to recent turns? Full session is gzip-archived first. [y/N] " _ans
+            if [[ "$_ans" == [yY]* ]]; then
+              _cc_deck_tail trim "$_tfp" --keep-turns "${CC_DECK_TAIL_KEEP:-10}" >/dev/null 2>&1
+              _sess_dirty=1
+            fi
+          fi
         fi
         clear
         continue

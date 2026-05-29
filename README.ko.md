@@ -23,6 +23,7 @@
 - **모드 기억** — 마지막 선택한 모드가 유지
 - **빠른 질문** — `cc-deck -q`로 기록 없는 일회성 질문 또는 임시 대화 세션
 - **[Quick] 세션** — 보존된 빠른 세션이 TUI 상단에 표시; Enter로 목록 탐색 및 재개
+- **세션 크기 관리** — `claude --resume`을 느리게 만드는 비대 세션을 "관리 그룹"에 노출. 옛 rewind 스냅샷은 자동 정리(무손실), `Ctrl-E`로 대화-주범 세션을 최근 턴만 남기고 정리(전체 세션은 먼저 아카이브)
 - **자동 업데이트** — 매일 백그라운드에서 업데이트 확인; `cc-deck update`로 수동 업데이트
 - **빠른 속도** — mtime 기반 캐시, 재실행 시 ~0.04초
 
@@ -111,6 +112,8 @@ cc-deck -q
 | `Ctrl-K` | 현재 세션 고정 / 해제 |
 | `Ctrl-R` | TODO 완료 처리 / PIN 또는 Quick 세션 제거 |
 | `Ctrl-Q` | 빠른 질문 (세션 저장 없음) |
+| `Ctrl-G` | 옛 스냅샷 정리 — 무손실, 파일 크기 축소 |
+| `Ctrl-E` | 최근 턴만 남기고 정리 — 손실, 전체 세션 먼저 아카이브 |
 | `Ctrl-O` | `claude`로 재개 |
 | `Ctrl-A` | `claude-api`로 재개 |
 | `Ctrl-S` | `claude --dangerously-skip-permissions`로 재개 |
@@ -124,6 +127,9 @@ cc-deck -q
 [TODO]  /tmp/projects/infra/k8s: 3Gi 적용 후 2주간 OOMKill 재발 여부 모니터링
 [PIN]   /tmp/projects/api-server: 배포 이후 메모리 사용량 계속 증가 — 원인 찾아줘
 [Quick] ▶ 2 sessions
+──────────────── sessions to manage (large) ────────────────
+[122M] /tmp/projects/books: 챕터 초안 검토 및 재작성
+ [77M] /tmp/projects/research: keep-alive 튜닝 결과
 ────────────────────────────────────────────────────────────────────────
 * 2026-05-08 09:14  /tmp/projects/api-server:    배포 이후 메모리 사용량 계속 증가
   2026-05-08 08:59  /tmp/projects/infra/k8s:    스케일 업 후 pod OOMKill 계속 남
@@ -136,6 +142,7 @@ cc-deck -q
 - `[TODO]` — Claude 메모리에서 자동 감지 (`type: project`, `name`에 `TODO` 포함)
 - `[PIN]` — `Ctrl-K`로 수동 고정
 - `[Quick]` — 보존된 빠른 세션 (Enter로 목록 탐색)
+- `[NNM]` (주황 ≥50MB / 빨강 ≥100MB) — 비대 세션, 최근성과 무관하게 정리용으로 노출 (`Ctrl-G` / `Ctrl-E`)
 
 ### 기본 명령어 변경
 
@@ -240,6 +247,34 @@ cc-deck -q
 
 2회 이상 대화한 `cc-deck -q` 세션은 보존되어 TUI에 `[Quick] ▶ N sessions`로 표시됩니다. Enter로 목록을 탐색하고 재개할 수 있습니다.
 
+### 6. 비대 세션 관리
+
+오래 이어간 세션의 `.jsonl`은 수백 MB까지 커질 수 있고, 그러면 `claude --resume`이 느려집니다(파일 전체를 메모리에 로드하기 때문). cc-deck은 이런 세션을 최근 사용 여부와 무관하게 `[Quick]` 아래 **"sessions to manage"** 그룹에 노출합니다:
+
+```
+──────────────── sessions to manage (large) ────────────────
+[122M] /tmp/projects/books: 챕터 초안 검토 및 재작성
+ [77M] /tmp/projects/research: keep-alive 튜닝 결과
+```
+
+정리 방법은 두 가지이며, 둘 다 세션 ID를 유지해 resume이 그대로 동작합니다:
+
+- **`Ctrl-G` — 스냅샷 정리 (무손실).** 비대의 주범은 대개 옛 `file-history-snapshot`(rewind 체크포인트)인데, 누적식이라 대화엔 전혀 기여하지 않습니다. 마지막 몇 개만 남기고 제거하며 대화는 그대로입니다. 100MB↑ 세션은 실행 시 자동으로도 정리됩니다.
+- **`Ctrl-E` — 최근 턴만 남기기 (손실).** 대화 자체로 큰 세션일 때, 최근 ~10턴만 남기고 **전체 세션을 `~/.claude/_archive/`에 gzip으로 먼저 보관**합니다. 최근 흐름은 유지되고 전체 기록은 안전하게 저장됩니다.
+
+스냅샷 정리는 원본 수정 시각(mtime)을 보존하므로, 정리된 옛 세션이 목록 맨 위로 튀어오르지 않습니다.
+
+### 크기 관리 설정
+
+| 변수 | 기본값 | 의미 |
+|---|---|---|
+| `CC_DECK_SIZE_WARN_MB` | `50` | 주황 배지 / 관리 그룹 임계값 |
+| `CC_DECK_SIZE_CRIT_MB` | `100` | 빨강 배지 / 자동 정리 임계값 |
+| `CC_DECK_SNAPSHOT_KEEP` | `3` | `Ctrl-G`/자동 정리가 남기는 스냅샷 수 |
+| `CC_DECK_TAIL_KEEP` | `10` | `Ctrl-E`가 남기는 턴 수 |
+| `CC_DECK_LARGE_MAX` | `15` | 관리 그룹에 표시할 최대 세션 수 |
+| `CC_DECK_DISABLE_AUTOPRUNE` | 미설정 | 설정 시 자동 스냅샷 정리 끔 |
+
 ---
 
 ## 저장 파일
@@ -251,6 +286,7 @@ cc-deck -q
 | `~/.claude/.cc-deck-mode` | 마지막 선택한 실행 모드 |
 | `~/.claude/.cc-deck-quick.json` | 빠른 세션 레지스트리 |
 | `~/.cc-deck-quick/` | 빠른 세션 작업 디렉토리 |
+| `~/.claude/_archive/` | `Ctrl-E`로 정리한 세션의 gzip 백업 |
 | `~/.claude/.cc-deck-last-update` | 마지막 자동 업데이트 확인 시각 |
 | `~/.claude/.cc-deck-updated` | 업데이트 알림 전달용 센티넬 파일 |
 | `~/.claude/.cc-deck-update.lock` | 동시 업데이트 방지 잠금 파일 |

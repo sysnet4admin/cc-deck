@@ -23,6 +23,7 @@ Claude Code sessions pile up across projects. When you need to get back to somet
 - **Mode persistence** — last selected mode remembered across runs
 - **Quick query** — `cc-deck -q` for instant one-shot queries or ephemeral sessions (no history saved)
 - **[Quick] sessions** — preserved quick sessions appear in the TUI; enter to browse and resume
+- **Session size management** — oversized sessions (which slow down `claude --resume`) are surfaced in a "sessions to manage" group. Old rewind snapshots are auto-pruned (lossless); `Ctrl-E` trims conversation-heavy sessions while keeping recent turns (full session archived first)
 - **Auto-update** — daily background update check; `cc-deck update` to update manually
 - **Fast** — mtime-based cache, ~0.04s on repeat runs
 
@@ -111,6 +112,8 @@ Press `Ctrl-Q` inside the TUI for a quick query without leaving the session brow
 | `Ctrl-K` | Pin / unpin current session |
 | `Ctrl-R` | Mark TODO as done / remove PIN or Quick session |
 | `Ctrl-Q` | Quick query (no session saved) |
+| `Ctrl-G` | Prune old snapshots — lossless, shrinks file size |
+| `Ctrl-E` | Trim to recent turns — lossy, archives full session first |
 | `Ctrl-O` | Resume with `claude` |
 | `Ctrl-A` | Resume with `claude-api` |
 | `Ctrl-S` | Resume with `claude --dangerously-skip-permissions` |
@@ -124,6 +127,9 @@ Press `Ctrl-Q` inside the TUI for a quick query without leaving the session brow
 [TODO]  /tmp/projects/infra/k8s: Watch for OOMKill recurrence over the next 2 weeks
 [PIN]   /tmp/projects/api-server: memory usage keeps climbing after the last deploy
 [Quick] ▶ 2 sessions
+──────────────── sessions to manage (large) ────────────────
+[122M] /tmp/projects/books: chapter draft review and rewrite
+ [77M] /tmp/projects/research: keep-alive tuning results
 ────────────────────────────────────────────────────────────────────────
 * 2026-05-08 09:14  /tmp/projects/api-server:    memory usage keeps climbing...
   2026-05-08 08:59  /tmp/projects/infra/k8s:    pod keeps OOMKilling after scaling up
@@ -136,6 +142,7 @@ Press `Ctrl-Q` inside the TUI for a quick query without leaving the session brow
 - `[TODO]` — auto-detected from Claude memory (`type: project`, `name` contains `TODO`)
 - `[PIN]` — manually pinned with `Ctrl-K`
 - `[Quick]` — preserved quick sessions (press Enter to browse)
+- `[NNM]` (orange ≥50MB / red ≥100MB) — oversized sessions, surfaced for cleanup regardless of recency (`Ctrl-G` / `Ctrl-E`)
 
 ### Default command override
 
@@ -244,6 +251,34 @@ cc-deck -q
 
 Important sessions from `cc-deck -q` (2+ exchanges) are preserved and appear as `[Quick] ▶ N sessions` in the TUI. Press Enter on `[Quick]` to browse and resume them.
 
+### 6. Managing oversized sessions
+
+A long-running session's `.jsonl` can grow to hundreds of MB, which makes `claude --resume` slow (the whole file is loaded into memory). cc-deck surfaces these below `[Quick]` in a **"sessions to manage"** group, regardless of how recently they were used:
+
+```
+──────────────── sessions to manage (large) ────────────────
+[122M] /tmp/projects/books: chapter draft review and rewrite
+ [77M] /tmp/projects/research: keep-alive tuning results
+```
+
+Two cleanup levers, both keep the same session id so resume keeps working:
+
+- **`Ctrl-G` — prune snapshots (lossless).** Most bloat is usually old `file-history-snapshot` entries (rewind checkpoints), which are cumulative and contribute nothing to the conversation. Pruning keeps the last few and drops the rest. Conversation is untouched. Sessions ≥100MB are also pruned automatically on launch.
+- **`Ctrl-E` — trim to recent turns (lossy).** When a session is large because of conversation itself, this keeps only the last ~10 turns and **gzip-archives the full session to `~/.claude/_archive/` first**. You keep recent context; the complete history is safely stored.
+
+Snapshot pruning preserves the original modification time, so cleaned-up old sessions don't jump to the top of the list.
+
+### Size management settings
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `CC_DECK_SIZE_WARN_MB` | `50` | orange badge / "manage" threshold |
+| `CC_DECK_SIZE_CRIT_MB` | `100` | red badge / auto-prune threshold |
+| `CC_DECK_SNAPSHOT_KEEP` | `3` | snapshots kept by `Ctrl-G` / auto-prune |
+| `CC_DECK_TAIL_KEEP` | `10` | turns kept by `Ctrl-E` |
+| `CC_DECK_LARGE_MAX` | `15` | max sessions shown in the manage group |
+| `CC_DECK_DISABLE_AUTOPRUNE` | unset | set to disable auto snapshot-pruning |
+
 ---
 
 ## Files
@@ -255,6 +290,7 @@ Important sessions from `cc-deck -q` (2+ exchanges) are preserved and appear as 
 | `~/.claude/.cc-deck-mode` | last selected resume mode |
 | `~/.claude/.cc-deck-quick.json` | quick session registry |
 | `~/.cc-deck-quick/` | working directory for quick sessions |
+| `~/.claude/_archive/` | gzip backups of sessions trimmed with `Ctrl-E` |
 | `~/.claude/.cc-deck-last-update` | timestamp of last auto-update check |
 | `~/.claude/.cc-deck-updated` | sentinel file for pending update notification |
 | `~/.claude/.cc-deck-update.lock` | lock file to prevent concurrent updates |

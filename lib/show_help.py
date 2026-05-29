@@ -29,8 +29,16 @@ HELP = """
   Ctrl-K      Pin / unpin session
   Ctrl-R      Delete selected TODO or PIN
   Ctrl-Q      Quick query (no session saved)
+  Ctrl-G      Prune old snapshots (lossless, shrink size)
+  Ctrl-E      Trim to recent turns (lossy; archives full first)
   F1          Show this help
   ESC         Quit
+
+  "sessions to manage": oversized sessions, shown below
+  [Quick] with a [NNM] size badge (orange 50MB+, red 100MB+).
+  Ctrl-G removes snapshots (lossless); Ctrl-E trims old
+  conversation when snapshots alone aren't enough (lossy,
+  full session archived to ~/.claude/_archive first).
 """
 
 sys.stdout.write(HELP)

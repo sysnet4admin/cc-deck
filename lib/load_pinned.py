@@ -1,5 +1,5 @@
 """
-cc-deck: load pinned entries (TODO memory entries + manual PINs).
+cc-deck: load pinned entries (TODO memory entries + manual PINs + large sessions).
 Usage: python load_pinned.py <pins_file>
 Output: raw_id<TAB>cwd<TAB>display_line  (with ANSI colors)
 """
@@ -10,6 +10,15 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 PINS_FILE = sys.argv[1]
 HOME = os.path.expanduser('~')
+CACHE_FILE = os.path.join(HOME, '.claude', '.cc-deck-cache.json')
+
+# Size marker thresholds (MB) — mirror the shell defaults / env overrides.
+_WARN_MB = int(os.environ.get('CC_DECK_SIZE_WARN_MB') or 50)
+_CRIT_MB = int(os.environ.get('CC_DECK_SIZE_CRIT_MB') or 100)
+# Cap on surfaced large sessions (avoid flooding the top of the list).
+_LARGE_MAX = int(os.environ.get('CC_DECK_LARGE_MAX') or 15)
+
+
 
 
 def replace_home(path):
@@ -107,8 +116,6 @@ for mf in sorted(glob.glob(pattern), key=os.path.getmtime, reverse=True):
         pass
 
 # 2. Manual pins
-CACHE_FILE = os.path.join(HOME, '.claude', '.cc-deck-cache.json')
-
 def load_preview_from_cache(sid):
     try:
         with open(CACHE_FILE, encoding='utf-8') as f:
@@ -146,3 +153,57 @@ if count > 0:
     print(f'QUICK:\t-\t\033[1;32m[Quick]\033[0m ▶ {count} {label}')
 else:
     print(f'QUICK:\t-\t\033[1;32m[Quick]\033[0m ▶ no sessions yet  (cc-deck -q)')
+
+# 4. Large sessions (>= warn) — their own "to manage" group below [Quick],
+# behind a labeled separator. Duplication is allowed (a session shows here even
+# if it's also TODO/PIN), so those rows stay clean and need no size info.
+# Size is a simple [NNM] badge, colored by severity (red >= crit, orange >= warn).
+# raw_id is the bare session_id, so the shell treats these like normal session
+# rows (Enter resumes, Ctrl-G prunes).
+try:
+    _cache = {}
+    try:
+        with open(CACHE_FILE, encoding='utf-8') as f:
+            _raw = json.load(f)
+        for _fp, _ent in _raw.items():
+            _cache[os.path.splitext(os.path.basename(_fp))[0]] = _ent
+    except Exception:
+        pass
+
+    _large = []
+    for f in glob.glob(os.path.join(HOME, '.claude', 'projects', '*', '*.jsonl')):
+        try:
+            sz = os.path.getsize(f)
+        except OSError:
+            continue
+        if sz < _WARN_MB * 1048576:
+            continue
+        sid = os.path.splitext(os.path.basename(f))[0]
+        _large.append((sz, f, sid))
+    _large.sort(reverse=True)
+    _large = _large[:_LARGE_MAX]
+
+    if _large:
+        # Labeled separator (non-selectable). The '-' placeholder in the cwd
+        # field prevents the shell's IFS=tab read from collapsing empty fields.
+        # Width follows COLUMNS (exported by the shell) so it spans the list.
+        try:
+            _cols = int(os.environ.get('COLUMNS') or 80)
+        except ValueError:
+            _cols = 80
+        _lbl = ' sessions to manage (large) '
+        _fill = max(6, _cols - 4 - len(_lbl))
+        print(f'SEP:\t-\t\033[90m──{_lbl}{"─" * _fill}\033[0m')
+        _w = max(len(f'[{sz // 1048576}M]') for sz, _, _ in _large)  # align size column
+        for sz, f, sid in _large:
+            ent = _cache.get(sid, {})
+            cwd = ent.get('cwd') or get_cwd_from_session(sid)
+            preview = ent.get('preview') or ''
+            short_cwd = replace_home(cwd)
+            plain = f'[{sz // 1048576}M]'
+            pad = ' ' * (_w - len(plain))
+            color = '\033[1;31m' if sz >= _CRIT_MB * 1048576 else '\033[38;5;208m'  # red / orange
+            label = f'{short_cwd}: {preview[:60]}' if preview else short_cwd
+            print(f'{sid}\t{cwd}\t{pad}{color}{plain}\033[0m {label}')
+except Exception:
+    pass

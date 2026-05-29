@@ -1,7 +1,7 @@
 """
 cc-deck: session bulk parser with mtime cache.
 Reads file list from stdin (one per line) or from sys.argv[1:].
-Output: filepath<TAB>cwd<TAB>preview
+Output: filepath<TAB>cwd<TAB>preview<TAB>size_bytes
 """
 import sys, json, os
 
@@ -92,15 +92,16 @@ new_cache = {}
 for filepath in file_list:
     try:
         mtime = os.path.getmtime(filepath)
+        size = os.path.getsize(filepath)
         entry = cache.get(filepath)
         if entry and entry.get('mtime') == mtime:
             cwd, preview = entry['cwd'], entry['preview']
         else:
             cwd, preview = extract(filepath)
         new_cache[filepath] = {'mtime': mtime, 'cwd': cwd, 'preview': preview}
-        print(f'{filepath}\t{cwd}\t{preview}', flush=True)
+        print(f'{filepath}\t{cwd}\t{preview}\t{size}', flush=True)
     except Exception:
-        print(f'{filepath}\t\t', flush=True)
+        print(f'{filepath}\t\t\t0', flush=True)
 
 merged = {k: v for k, v in cache.items() if k not in new_cache and os.path.exists(k)}
 merged.update(new_cache)
