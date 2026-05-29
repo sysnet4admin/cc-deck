@@ -17,6 +17,7 @@ CYN  = "\033[36m"
 BLU  = "\033[1;34m"
 RED  = "\033[1;31m"
 ORG  = "\033[1;38;2;217;119;87m"   # Claude Code brand orange
+ORG2 = "\033[38;5;208m"            # size-warn orange (50-100MB)
 
 MODES = [
     ("claude",          ORG),
@@ -29,7 +30,7 @@ def make_header(mode_label="claude", mode_color=None):
     mc = mode_color or ORG
     return (
         f"{YLW}[TODO]{R}=auto-pinned  {MAG}[PIN]{R}=manual | "
-        f"^K: pin  ^R: rm  Tab: cycle  F1: help  ESC: quit | "
+        f"^K: pin  ^R: rm  ^G: prune  ^E: trim  Tab: cycle  F1: help | "
         f"{mc}[{mode_label}]{R}"
     )
 
@@ -61,6 +62,27 @@ ALL_SESSIONS = [
 OOM_SESSIONS = [
     f"  {GRY}2026-05-08 08:59{R}  /tmp/projects/infra/k8s:    {WHT}스케일 업 후 pod OOMKill 계속 남 — 로그 분석해줘{R}",
 ]
+
+MLBL_SEP   = f"{GRY}──────────── sessions to manage (large) ───────────────────────────────────────────{R}"
+MANAGE_122 = f"{RED}[122M]{R} /tmp/projects/books:    {WHT}챕터 초안 검토 및 재작성{R}"
+MANAGE_77  = f"{ORG2} [77M]{R} /tmp/projects/research: {WHT}keep-alive 튜닝 결과{R}"
+
+def draw_fzf_manage(pinned, manage, sessions, selected=0, mode_label="claude", mode_color=None):
+    mc = mode_color or ORG
+    out("\033[2J\033[H", 0.01)
+    out(f"  {GRN}cc-deck>{R} {CYN}{R}\033[?25l", 0.01); nl()
+    out(make_header(mode_label, mc), 0.01); nl()
+    items = pinned + [MLBL_SEP] + manage + [SEP_ITEM] + sessions
+    info_left = f"  {len(items)}/100"
+    mode_tag  = f"[{mode_label}]"
+    pad = max(0, W - len(info_left) - len(mode_tag) - 2)
+    out(f"{GRY}{info_left}{R}{' ' * pad}{mc}{mode_tag}{R}", 0.01); nl()
+    for i, item in enumerate(items):
+        if i == selected:
+            out(f"{REV}>{R} {item}{R}", 0.01)
+        else:
+            out(f"  {item}", 0.01)
+        nl()
 
 def draw_fzf(items, query="", selected=0, info_count=None, mode_label="claude", mode_color=None):
     mc = mode_color or ORG
@@ -191,6 +213,26 @@ out(f"{GRY}✓{R} SIGTERM이 뭐야?\r\n", 0.03)
 nl()
 out(f"{GRN}~/.cc-deck-quick{R} $ ", 0.04); pause(0.4)
 out(f"{GRY}│{R}", 0.04); pause(2.0)
+
+# ── SCENE 4: 세션 크기 관리 ──────────────────────────────────────────────────
+comment("4. 비대 세션을 [Quick] 아래에 노출 — Ctrl-E로 최근 턴만 남기고 정리", pre=1.2, post=0.8)
+
+out(f"{GRN}~/projects{R} $ ", 0.01); pause(0.3)
+type_chars("cc-deck"); pause(0.3); out("\r\n", 0.05); pause(0.2)
+draw_fzf_manage([TODO_ITEM, PIN_ITEM, QUICK_ITEM], [MANAGE_122, MANAGE_77], ALL_SESSIONS, selected=4)
+pause(1.6)
+
+# Ctrl-E on the 122M session → preview + confirm + trim
+out("\033[2J\033[H", 0.01)
+out(f"{GRY}# Ctrl-E — 최근 턴만 남기고 정리 (전체 세션은 먼저 아카이브){R}\r\n", 0.02); pause(0.3)
+out(f"7fd77d56-…jsonl: {RED}122.1MB{R} → {GRN}5.2MB{R} (최근 10/50턴 유지) {GRY}[dry-run]{R}\r\n", 0.02); pause(0.6)
+out("  Trim to recent turns? Full session is gzip-archived first. [y/N] ", 0.02)
+type_chars("y", 0.12); out("\r\n", 0.05); pause(0.3)
+out(f"{GRY}✓{R} 전체 세션 아카이브 → ~/.claude/_archive/7fd77d56_…jsonl.gz\r\n", 0.02); pause(1.0)
+
+# 정리 후 — 122M 사라지고 77M만 관리 그룹에 남음
+draw_fzf_manage([TODO_ITEM, PIN_ITEM, QUICK_ITEM], [MANAGE_77], ALL_SESSIONS, selected=4)
+pause(1.8)
 
 # ── Output ────────────────────────────────────────────────────────────────────
 header = {
