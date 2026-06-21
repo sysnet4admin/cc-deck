@@ -134,7 +134,7 @@ try:
         cwd = info.get('cwd', '')
         note = info.get('note', '')
         short_cwd = replace_home(cwd)
-        preview = load_preview_from_cache(sid) or note or short_cwd
+        preview = note or load_preview_from_cache(sid) or short_cwd
         print(f'PIN:{sid}\t{cwd}\t\033[1;35m[PIN] \033[0m {short_cwd}: {preview[:70]}')
 except Exception:
     pass
