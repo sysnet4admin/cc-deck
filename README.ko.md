@@ -293,6 +293,23 @@ cc-deck -q
 
 ---
 
+## 변경 이력 (Changelog)
+
+각 릴리스의 전체 노트: [GitHub Releases](https://github.com/sysnet4admin/cc-deck/releases).
+
+| 버전 | 날짜 | 요약 |
+|------|------|------|
+| [v0.6.1](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.6.1) | 2026-06-21 | 수동 핀 이름 — 핀의 `note`가 `[PIN]` 라벨로 표시 |
+| [v0.6.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.6.0) | 2026-05-29 | 세션 크기 관리 — 비대 세션 노출, 정리(`Ctrl-G`), 축소(`Ctrl-E`) |
+| [v0.5.1](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.5.1) | 2026-05-21 | `[Quick]` 항상 표시; 업데이트 알림에 태그명 표기 |
+| [v0.5.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.5.0) | 2026-05-21 | 빠른 세션 — `cc-deck -q` 임시 세션 및 일회성 질문 |
+| [v0.4.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.4.0) | 2026-05-20 | 모드 순환 개선; 환경변수 / 셸 rc 에서 API 모드 자동 감지 |
+| [v0.3.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.3.0) | 2026-05-19 | 크로스플랫폼 안정 릴리스 — zsh, bash, PowerShell |
+| [v0.2.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.2.0) | 2026-05-15 | 자동 업데이트 (24h TTL, 백그라운드, 수동 `cc-deck update`) |
+| [v0.1.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.1.0) | 2026-05-15 | 최초 릴리스 (zsh 전용) |
+
+---
+
 ## Made with Claude Code
 
 [![Claude](https://img.shields.io/badge/Made%20with-Claude%20Code-orange)](https://claude.ai/code)

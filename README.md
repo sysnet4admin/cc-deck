@@ -297,6 +297,23 @@ Snapshot pruning preserves the original modification time, so cleaned-up old ses
 
 ---
 
+## Changelog
+
+Full notes for every release: [GitHub Releases](https://github.com/sysnet4admin/cc-deck/releases).
+
+| Version | Date | Summary |
+|---------|------|---------|
+| [v0.6.1](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.6.1) | 2026-06-21 | Manual pin names — a pin's `note` now shows as its `[PIN]` label |
+| [v0.6.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.6.0) | 2026-05-29 | Session size management — surface, prune (`Ctrl-G`), and trim (`Ctrl-E`) oversized sessions |
+| [v0.5.1](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.5.1) | 2026-05-21 | `[Quick]` always shown; update notifications show tag names |
+| [v0.5.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.5.0) | 2026-05-21 | Quick sessions — `cc-deck -q` ephemeral and one-shot queries |
+| [v0.4.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.4.0) | 2026-05-20 | Smarter mode cycling; auto-detect API mode from env / shell rc |
+| [v0.3.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.3.0) | 2026-05-19 | Cross-platform stable release — zsh, bash, PowerShell |
+| [v0.2.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.2.0) | 2026-05-15 | Auto-update (24h TTL, background, manual `cc-deck update`) |
+| [v0.1.0](https://github.com/sysnet4admin/cc-deck/releases/tag/v0.1.0) | 2026-05-15 | Initial release (zsh only) |
+
+---
+
 ## Made with Claude Code
 
 [![Claude](https://img.shields.io/badge/Made%20with-Claude%20Code-orange)](https://claude.ai/code)
