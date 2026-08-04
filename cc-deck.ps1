@@ -63,7 +63,9 @@ function _cc_deck_build_sessions {
         $previewText = if ($preview) { $preview } else { "(no preview)" }
         $list.Add("${sessionId}`t${cwd}`t${marker}${mtime}  ${shortCwd}: ${previewText}")
     }
-    return $list
+    # Comma prevents PowerShell from unrolling the collection; without it the
+    # List[string] returns as Object[] and the caller's AddRange() type-fails.
+    return ,$list
 }
 
 function _cc_deck_load_pinned {
